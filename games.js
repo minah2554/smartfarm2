@@ -3,8 +3,8 @@ const rand = n => Math.floor(Math.random()*n);
 const html = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 export function launchGame(type, onWin) {
   const config=CONTENT.games[type]; let stop=()=>{};
-  const layer=document.createElement('div'); layer.className='overlay';
-  layer.innerHTML=`<section class="modal game" role="dialog" aria-modal="true"><button class="close ghost" type="button">닫기</button><p class="kicker">보너스 게임 · ${config.place||''}</p><h2>${config.title}</h2><p>${config.instruction}</p><div class="game-body"></div></section>`;
+  const layer=document.createElement('div'); layer.className='overlay game-layer';
+  layer.innerHTML=`<section class="modal game ${type==='hidden'?'wide':''}" role="dialog" aria-modal="true"><button class="close ghost" type="button">닫기</button><p class="kicker">보너스 게임 · ${config.place||''}</p><h2>${config.title}</h2><p>${config.instruction}</p><div class="game-body"></div></section>`;
   document.body.append(layer);
   const body=layer.querySelector('.game-body');
   const close=()=>{stop();layer.remove()}; layer.querySelector('.close').onclick=close;
@@ -27,11 +27,39 @@ export function launchGame(type, onWin) {
       },ms);
     };stop=()=>clearInterval(interval);
   } else if(type==='hidden') {
-    // 실제 온실 삽화의 다섯 물건을 터치해 찾는다. 좌표는 반응형 영역의 비율이다.
-    const spots=[['🔍',12,37],['🧤',74,70],['🗝️',49,16],['🦋',83,29],['🚿',25,75]];
-    body.innerHTML=`<p>찾을 물건: ${config.targets.join(' · ')}</p><div class="hidden-scene"><span class="scene-decor" style="left:33%;top:35%">🌿</span><span class="scene-decor" style="left:57%;top:45%">🌱</span><span class="scene-decor" style="left:3%;top:5%">☁️</span><span class="scene-decor" style="left:72%;top:3%">☀️</span></div><p class="stats">찾은 물건 0/5</p>`;
-    let found=0;spots.forEach(([symbol,x,y],i)=>{const b=document.createElement('button');b.className='target';b.type='button';b.style.left=x+'%';b.style.top=y+'%';b.textContent=symbol;b.setAttribute('aria-label',config.targets[i]);
-      b.onclick=()=>{if(b.disabled)return;b.disabled=true;b.classList.add('found');found++;body.querySelector('.stats').textContent=`찾은 물건 ${found}/5`;if(found===5)win()};body.querySelector('.hidden-scene').append(b)});
+    // 어질러진 공구 창고: 이름만 보고 물건을 찾는다. 엉뚱한 물건을 누르면 시간이 줄어든다.
+    const pool=[...config.targets].sort(()=>Math.random()-.5), picks=pool.slice(0,config.pick||5);
+    const pickIcons=new Set(picks.map(t=>t.icon));
+    const fillers=[...config.decoys,...pool.slice(config.pick||5).map(t=>t.icon)].filter(i=>!pickIcons.has(i));
+    const cols=12, rows=7, cells=Array.from({length:cols*rows},(_,i)=>i).sort(()=>Math.random()-.5).slice(0,Math.min(config.clutter||70,cols*rows));
+    const items=cells.map((cell,i)=>{const t=i<picks.length?picks[i]:null;
+      return {icon:t?t.icon:fillers[rand(fillers.length)], target:t, x:((cell%cols)+.18+Math.random()*.64)/cols*100, y:((Math.floor(cell/cols))+.2+Math.random()*.6)/rows*100,
+        size:t?2.7+Math.random()*.6:2.6+Math.random()*2.2, rot:Math.round(Math.random()*70-35), z:t?2:1+rand(3)}});
+    let left=config.timeLimit||90, found=0, timer=null;
+    body.innerHTML=`<div class="find-list" aria-label="찾을 물건">${picks.map((t,i)=>`<span class="find" data-i="${i}">${html(t.name)}</span>`).join('')}</div>
+      <p class="stats">남은 시간 <span class="time">${left}</span>초 · 찾은 물건 <span class="cnt">0</span>/${picks.length}</p>
+      <div class="shed"><div class="shed-cover"><button class="primary go">탐색 시작</button><p>시작하면 창고 문이 열려요</p></div></div><p class="feedback" aria-live="polite"></p>`;
+    const shed=body.querySelector('.shed');
+    const end=ok=>{clearInterval(timer);timer=null;shed.classList.add('done');
+      if(ok){setTimeout(win,500);return}
+      shed.querySelectorAll('.it.t:not(.found)').forEach(b=>b.classList.add('reveal'));
+      body.querySelector('.feedback').textContent='시간이 끝났어요! 빨간 동그라미가 숨은 물건이었어요.';
+      const again=document.createElement('button');again.className='primary';again.textContent=CONTENT.labels.retry;
+      again.onclick=()=>{close();launchGame(type,onWin)};body.append(again)};
+    const tick=()=>{left=Math.max(0,left);body.querySelector('.time').textContent=left;if(left<=0)end(false)};
+    body.querySelector('.go').onclick=()=>{
+      shed.innerHTML=`<div class="shelf s1"></div><div class="shelf s2"></div><div class="shelf s3"></div><div class="peg"></div><div class="crate c1"></div><div class="crate c2"></div><div class="sack"></div>`+
+        items.map((it,i)=>`<button type="button" class="it ${it.target?'t':''}" data-i="${i}" style="left:${it.x}%;top:${it.y}%;font-size:${it.size}cqw;--r:${it.rot}deg;z-index:${it.z}" aria-label="${it.target?html(it.target.name):'물건'}">${it.icon}</button>`).join('');
+      timer=setInterval(()=>{left--;tick()},1000);
+      shed.onclick=e=>{const b=e.target.closest('.it');if(!b||!timer)return;const it=items[Number(b.dataset.i)];
+        if(it.target&&!b.classList.contains('found')){b.classList.add('found');found++;body.querySelector('.cnt').textContent=found;
+          body.querySelector(`.find[data-i="${picks.indexOf(it.target)}"]`).classList.add('ok');if(found===picks.length)end(true);return}
+        if(b.classList.contains('found'))return;
+        left-=config.penalty||5;b.classList.remove('miss');void b.offsetWidth;b.classList.add('miss');
+        const r=shed.getBoundingClientRect(),m=document.createElement('span');m.className='minus';m.textContent=`-${config.penalty||5}초`;
+        m.style.left=(e.clientX-r.left)+'px';m.style.top=(e.clientY-r.top)+'px';shed.append(m);setTimeout(()=>m.remove(),900);tick()};
+    };
+    stop=()=>clearInterval(timer);
   } else if(type==='color') {
     const colors=[['빨강','#e7454c'],['파랑','#287acf'],['초록','#3fac68']];let remaining=config.duration,score=0, boardTimer, clockTimer, active=false;
     body.innerHTML=`<p class="stats">목표: ${html(config.target)} · ${config.passAbove}점 초과<br>시간 <span class="time">${remaining}</span>초 · 점수 <span class="score">0</span>점</p><div class="grid"></div><button class="primary start">시작</button><p class="feedback" aria-live="polite"></p>`;

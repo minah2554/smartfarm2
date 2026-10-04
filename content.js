@@ -4,13 +4,29 @@ export const CONTENT = {
   title: '스마트팜 바이오 랩',
   aiName: 'FARM-OS',
 
-  // 낮 모드 입장 후 보여 주는 작전 브리핑 (한 장씩 넘어갑니다)
+  // 연구원 출입증(첫 화면) 문구
+  entry: {
+    kicker: '융합 방탈출 · 과학 × 밤 연구실',
+    lead: '관리 AI가 고장 난 온실을 구하러 출동할 연구 모둠의 출입증을 발급하세요. 낮·밤 어느 구역에 들어가든 같은 출입증으로 기록이 이어져요.',
+    badgeTitle: '연구원 출입증',
+    leaderLabel: '대표 연구원 (팀장)',
+    memberLabel: '연구원 (팀원)',
+    modeLabel: '투입 구역',
+    enter: '출입증 확인 · 입장',
+    resume: '이전 기록을 찾았어요. 이어서 진행해요.'
+  },
+
+  // 모둠이 처음 입장할 때 한 번 보여 주는 작전 브리핑 (낮·밤 공통). 상단 '브리핑' 버튼으로 다시 볼 수 있어요.
+  //  formula: true → 광합성 식 그림,  split: {day, night} → 낮·밤 구역 나란히,  orders: true → 우리 모둠 투입 구역 표시
   briefing: [
-    { tag: '긴급 통신', text: '오전 9시, 스마트팜 바이오 랩 1구역. 온실을 관리하던 AI ‘FARM-OS’가 갑자기 오작동을 일으켰다.' },
-    { tag: '피해 상황', text: 'AI가 배관 이름표를 뒤섞고, 실험 기록을 조작하고, 정비 로봇의 경로까지 지워 버렸다. 광합성 제어 시스템이 멈추고 새싹이 시들기 시작했다.' },
-    { tag: '광합성 공식', text: '식물은 물과 이산화탄소를 재료로, 빛 에너지를 받아 엽록체에서 양분(포도당)을 만든다. 재료 셋 중 하나라도 끊기면 식물은 자랄 수 없다.', formula: true },
-    { tag: '작전 목표', text: '활동지 LOCK 1~3에서 단서를 찾아 암호를 풀어라. 온실 속에서 색이 다른 분자를 찾아 누르면 암호 입력 장치가 열린다.' },
-    { tag: '작전 규칙', text: '막히면 힌트를 열 수 있다(3단계는 정답 공개). 장치를 복구하면 온실의 시설물에서 보너스 게임이 열린다. 해가 지기 전에 식물을 꽃피워라!' }
+    { tag: '긴급 통신', text: '스마트팜 바이오 랩의 관리 AI ‘FARM-OS’가 오작동을 일으켰다. 온실은 낮 구역과 밤 구역, 두 시스템이 번갈아 돌보는데 두 시스템이 한꺼번에 멈춰 버렸다.' },
+    { tag: '낮 구역 피해', text: 'AI가 배관 이름표를 뒤섞고, BTB 실험 기록을 조작하고, 정비 로봇의 경로까지 지워 버렸다. 물·이산화탄소·빛 공급이 끊겨 광합성이 멈췄다.' },
+    { tag: '낮의 핵심 원리', text: '식물은 물과 이산화탄소를 재료로, 빛 에너지를 받아 엽록체에서 양분(포도당)을 만든다. 재료 셋 중 하나라도 끊기면 식물은 자랄 수 없다.', formula: true },
+    { tag: '밤 구역 피해', text: '해가 지면 빛이 없어 광합성은 멈추지만, 식물은 낮이나 밤이나 쉬지 않고 호흡한다. FARM-OS는 밤 구역의 관리 시스템까지 잠가 버렸다. 밤 구역 임무는 밤 연구 책임자가 안내한다.' },
+    { tag: '작전 규칙', split: {
+        day: '색이 다른 분자를 찾아 암호 장치 3개를 복구한다. 장치를 복구하면 시설물에서 보너스 게임이 열린다. 막히면 힌트 3단계(3단계는 정답 공개).',
+        night: '밤 연구 책임자의 안내에 따라 밤 구역 장치를 복구한다. 낮에 키운 식물 기록은 그대로 이어진다.' } },
+    { tag: '작전 개시', orders: true, text: '모둠마다 낮 또는 밤 구역에 먼저 투입되고, 다음 시간에 나머지 구역으로 이동한다. 구역마다 제한 시간은 35분. 보너스 게임까지 모두 해결해야 식물에 이름을 붙이고 기념사진을 받을 수 있다. 시간이 끝나면 키운 만큼 인증서를 받는다.' }
   ],
 
   aiLines: {
@@ -25,7 +41,7 @@ export const CONTENT = {
   labels: {
     resultTab: '🔐 암호 입력', hintTab: '💡 힌트 보기',
     submit: '장치 복구', retry: '다시 도전',
-    name: '우리 식물의 이름', download: '식물 기록 이미지 저장'
+    name: '우리 식물의 이름', download: '🏅 인증서 저장', downloadPot: '🪴 화분 그림 저장'
   },
 
   missions: {
@@ -56,11 +72,44 @@ export const CONTENT = {
   },
   // 보너스 게임: 온실 시설물을 누르면 시작 (unlockBy = 먼저 복구해야 할 장치)
   games: {
-    observation: { title: '순간 관찰', place: '물뿌리개', unlockBy: 'water', instruction: '그림이 빠르게 지나가요. 모든 그림을 잘 기억하세요! 질문은 마지막에 나와요.', icons: ['🍃', '🌼', '☀️', '💧', '🐞'], frames: 20, intervalMs: 500 },
-    hidden: { title: '온실 숨은그림찾기', place: '공구 창고', unlockBy: 'carbon', instruction: '온실에 숨어 있는 다섯 물건을 찾아 누르세요.', targets: ['돋보기', '장갑', '열쇠', '나비', '물뿌리개'] },
-    color: { title: '컬러 터치', place: '조명 제어판', unlockBy: 'light', instruction: '10초 동안 계속 바뀌는 칸 중 목표 색만 터치하세요. 다른 색은 감점됩니다.', target: '빨강', duration: 10, passAbove: 200, correctPoints: 20, wrongPoints: -15, changeMs: 650 }
+    observation: { title: '순간 관찰', icon: '👀', place: '물뿌리개', unlockBy: 'water', instruction: '그림이 빠르게 지나가요. 모든 그림을 잘 기억하세요! 질문은 마지막에 나와요.', icons: ['🍃', '🌼', '☀️', '💧', '🐞'], frames: 20, intervalMs: 500 },
+    hidden: {
+      title: '공구 창고 숨은 물건 찾기', icon: '🔍', place: '공구 창고', unlockBy: 'carbon',
+      instruction: '어질러진 창고에서 아래 이름의 물건을 찾아 누르세요. 그림은 알려 주지 않아요! 엉뚱한 물건을 누르면 시간이 줄어요.',
+      pick: 5,            // 한 번에 찾을 물건 수 (아래 목록에서 무작위)
+      timeLimit: 90,      // 제한 시간(초)
+      penalty: 5,         // 잘못 누르면 줄어드는 시간(초)
+      clutter: 70,        // 창고에 흩어 놓을 물건 개수(찾을 물건 포함)
+      // 찾을 물건 후보 — 이름은 학생에게 보이고, 그림(이모지)은 창고 속에 숨겨져요
+      targets: [
+        { name: '돋보기', icon: '🔍' }, { name: '장갑', icon: '🧤' }, { name: '온도계', icon: '🌡️' },
+        { name: '달팽이', icon: '🐌' }, { name: '열쇠', icon: '🔑' }, { name: '가위', icon: '✂️' },
+        { name: '손전등', icon: '🔦' }, { name: '무당벌레', icon: '🐞' }, { name: '자석', icon: '🧲' },
+        { name: '전구', icon: '💡' }, { name: '시험관', icon: '🧪' }, { name: '나비', icon: '🦋' }
+      ],
+      // 창고를 어지럽히는 물건 (찾을 물건과 헷갈리는 같은 그림은 넣지 마세요)
+      decoys: ['🔧', '🔨', '⚙️', '🔩', '🧰', '🧺', '📦', '🥕', '🍅', '🌶️', '🥔', '🍂', '🍃', '🌱', '🌿', '🌵', '🌻', '🌷', '🐝', '🐛', '🐜', '🥾', '👢', '🧵', '🧶', '📏', '📐', '🔋', '⛏️', '🧯', '🧻', '🕯️', '📎', '✏️', '🖌️', '🔗', '🏷️', '🧷', '🥫', '🧴', '🎒', '⏰', '🧽', '🍄', '🌰', '🥒', '🔔', '📌']
+    },
+    color: { title: '컬러 터치', icon: '🎨', place: '조명 제어판', unlockBy: 'light', instruction: '10초 동안 계속 바뀌는 칸 중 목표 색만 터치하세요. 다른 색은 감점됩니다.', target: '빨강', duration: 10, passAbove: 200, correctPoints: 20, wrongPoints: -15, changeMs: 650 }
   },
 
-  completion: '낮의 온실 복구 완료! 식물에게 이름을 지어 주세요.',
-  nightWaiting: '밤 모드는 준비 중이에요. 선생님의 신호를 기다려 주세요.'
+  // 마무리·인증서
+  completion: '낮 구역 완전 복구! 우리 식물에게 이름을 지어 주세요.',
+  timeUp: '제한 시간이 끝났어요. 여기까지 키운 식물로 연구 인증서를 받으세요.',
+  nightWaiting: '밤 구역은 준비 중이에요. 밤 연구 책임자의 신호를 기다려 주세요.',
+  certificate: {
+    title: '스마트팜 연구 인증서',
+    speedMinutes: 25,                    // 이 시간 안에 모두 끝내면 ⚡ 스피드 도장
+    // 등급: 장치 복구 수(locks)와 보너스 수(bonus)가 모두 기준 이상인 첫 줄을 사용
+    tiers: [
+      { locks: 3, bonus: 3, badge: '🏆', title: '스마트팜 마스터 연구원' },
+      { locks: 3, bonus: 0, badge: '🌼', title: '개화 연구원' },
+      { locks: 2, bonus: 0, badge: '🌷', title: '꽃봉오리 연구원' },
+      { locks: 1, bonus: 0, badge: '🌿', title: '줄기 연구원' },
+      { locks: 0, bonus: 0, badge: '🌱', title: '새싹 연구원' }
+    ]
+  },
+  // 모든 미션을 끝낸 모둠에게 무작위로 보여 줄 '꽃이 핀 화분' 사진 (photos 폴더에 넣은 파일 이름)
+  // 파일이 없으면 자동으로 그림 화분으로 대신해요.
+  photos: ['photos/flower-01.jpg', 'photos/flower-02.jpg', 'photos/flower-03.jpg', 'photos/flower-04.jpg', 'photos/flower-05.jpg', 'photos/flower-06.jpg']
 };
