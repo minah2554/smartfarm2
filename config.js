@@ -13,6 +13,8 @@ export const CONFIG = {
 
   // 밤 모드 화면이 완성되면 true로 바꾸세요. false이면 밤 모드는 '준비 중' 화면만 보이고 타이머가 시작되지 않아요.
   nightEnabled: false,
+  // 교사용 대시보드 🌙 줄에 보여 줄 칸 수 = 밤 구역 미션 수 + 밤 보너스 게임 수 (밤 구역 선생님이 정해요)
+  nightSlots: 6,
 
   // 🔐 관리코드(낮·밤·대시보드)는 보안을 위해 이 파일에 두지 않아요.
   //    → api/verify.js 파일 맨 위 CODES에서 바꾸세요. (Vercel 서버에서만 확인돼서 개발자 도구로도 보이지 않아요)
@@ -25,6 +27,9 @@ export const CONFIG = {
   //               교사용 대시보드에 실시간으로 나타나요. (README의 'Firebase 연결' 참고)
   sync: {
     mode: 'firebase',
+    // 실제 수업용 주소. 이 주소에서만 수업 기록 칸(/smartfarm)을 쓰고,
+    // 브랜치 미리보기 주소·내 컴퓨터에서는 시험용 칸(/smartfarm-preview)에 따로 저장해요.
+    productionHosts: ['smartfarm2-three.vercel.app'],
     firebaseDatabaseURL: 'https://smartfarmdaynnight-default-rtdb.asia-southeast1.firebasedatabase.app'   // 예시 형식: https://프로젝트이름-default-rtdb.asia-southeast1.firebasedatabase.app
   }
 };
