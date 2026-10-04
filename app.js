@@ -5,7 +5,7 @@ import {plantSvg, potSvg, svgToImage} from './plant.js';
 import {launchGame} from './games.js';
 import {sceneSvg} from './scene.js';
 import {drawCertificate, downloadCanvas, loadPhoto} from './cert.js';
-import {getTeam, patchTeam, applyPatch, fetchTeams, watchTeams, watchTeam, deleteTeam, clearTeams, syncLabel, syncClock, now, SERVER_TIME} from './sync.js';
+import {getTeam, patchTeam, applyPatch, fetchTeams, watchTeams, watchTeam, deleteTeam, clearTeams, syncLabel, syncClock, now, SERVER_TIME, addHall, fetchHall, clearHall} from './sync.js';
 import {sfx, isMuted, toggleMute} from './sound.js';
 
 /* ───────── 상태 ─────────
@@ -22,7 +22,7 @@ const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Strin
 const makeId = (g, c, t) => `g${g}-c${c}-t${t}`;
 const limitMs = mode => (CONFIG.missionMinutes?.[mode] || 35) * 60000;
 
-export const APP_VERSION = '2.2';
+export const APP_VERSION = '2.3';
 const ADMIN_HASH = 'ad5f52f58ed6ec6e7a641f2416f347674ac5933470079f2a18bc6269b1e80796';
 async function sha256(s) {
   try {
@@ -54,6 +54,17 @@ const remaining = (rec, mode) => { const m = rec?.[mode]; if (!m?.startedAt) ret
 const timeUp = () => !!Z().startedAt && !Z().finishedAt && remaining(team, 'day') <= 0;
 const usedMs = () => { const z = Z(); if (!z.startedAt) return 0; return Math.min(limitMs('day'), (z.finishedAt || now()) - z.startedAt); };
 const teamLabel = (t = team) => t ? `${t.grade}학년 ${t.classNo}반 ${t.teamNo}모둠` : '';
+/* 연구 점수 = 미션 + 시간 − 힌트 (content.js의 certificate.score) */
+function scoreOf(t) {
+  const z = t?.day || {}, S = C.certificate.score, tiers = C.certificate.tiers;
+  const locks = KEYS.filter(k => z.done?.[k]).length, bonus = GAME_KEYS.filter(g => z.bonus?.[g]).length;
+  const mission = locks * S.lock + bonus * S.bonus;
+  let time = 0;
+  if (z.finishedAt && z.startedAt) { const min = (z.finishedAt - z.startedAt) / 60000; time = (S.time.find(r => min <= r.within) || {points: 0}).points; }
+  const hint = KEYS.reduce((a, k) => { const n = z.hints?.[k] || 0; return a + Math.min(n, 2) * S.hint + (n >= 3 ? S.answerHint : 0); }, 0);
+  const total = Math.max(0, mission + time - hint);
+  return {locks, bonus, mission, time, hint, total, tier: tiers.find(r => total >= r.min) || tiers[tiers.length - 1]};
+}
 const hintsTotal = () => KEYS.reduce((a, k) => a + opened(k), 0);
 
 /* 기록 저장: 화면에 바로 반영하고 sync.js로 보낸다 */
@@ -80,6 +91,8 @@ function modeSwitch(cur, size = '') {
     <i class="knob" aria-hidden="true"></i></div>`;
 }
 const muteBtn = () => `<button class="icon-btn" data-mute aria-label="효과음 ${isMuted() ? '켜기' : '끄기'}">${isMuted() ? '🔇' : '🔊'}</button>`;
+const LOGO = `<svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#0E3B39"/><circle cx="47" cy="17" r="7" fill="#FFD23F"/><path d="M12 50 V32 Q12 18 32 14 Q52 18 52 32 V50" fill="none" stroke="#E6FAF2" stroke-width="4" stroke-linecap="round"/><path d="M32 50 V36" stroke="#8BD450" stroke-width="4" stroke-linecap="round"/><path d="M32 38 C24 38 20 33 20 27 C27 27 32 31 32 38Z M32 36 C32 29 37 25 44 25 C44 31 40 36 32 36Z" fill="#8BD450"/><path d="M8 50 H56" stroke="#C79A6B" stroke-width="5" stroke-linecap="round"/></svg>`;
+const siteFooter = () => `<footer class="site-foot">${LOGO}<span class="brand">스마트팜 바이오 랩</span><span class="ver f-ver">v${APP_VERSION}</span><span class="note">${esc(C.footer?.note || '')}</span><span class="grow"></span><span class="sync">${esc(syncLabel())}</span><span class="copy">${esc(C.footer?.copyright || '')}</span></footer>`;
 const homeBtn = () => `<button class="home-btn" data-home aria-label="처음 화면으로">🏠 처음으로</button>`;
 function timerChip(mode) {
   const z = Z(mode);
@@ -106,9 +119,10 @@ function homeView() {
   return `<main class="home">
     <section class="home-hero">
       <p class="kicker">${esc(E.kicker)}</p>
-      <h1 class="logo">스마트팜<br>바이오 랩</h1>
+      <h1 class="logo">${E.title || '스마트팜<br>바이오 랩'}</h1>
+      ${E.subtitle ? `<p class="subtitle">${esc(E.subtitle)}</p>` : ''}
       <p class="lead">${esc(E.lead)}</p>
-      <div class="home-art" aria-hidden="true">${plantSvg(['water', 'carbon'], [], '', true)}</div>
+      <button type="button" class="home-art" data-admin aria-label="교사용 대시보드 열기">${plantSvg(['water', 'carbon'], [], '', true)}</button>
     </section>
     <form class="badge-card" id="entry-form" autocomplete="off">
       <div class="badge-head"><span class="chip-hole" aria-hidden="true"></span><div><p class="badge-kicker">SMART FARM BIO LAB</p><h2>${esc(E.badgeTitle)}</h2></div><span class="badge-photo" aria-hidden="true">🧑‍🔬</span></div>
@@ -123,8 +137,7 @@ function homeView() {
       <p class="feedback" aria-live="polite">${esc(f.error)}</p>
       <button class="primary wide" type="submit" ${ready ? '' : 'disabled'}>${ready ? `${esc(E.enter)} · ${CONFIG.missionMinutes[f.mode]}분 시작` : '학년·반·모둠을 골라 주세요'}</button>
     </form>
-    <footer class="home-foot"><button class="text-btn" data-admin>🛰️ 교사용 대시보드</button><span>${esc(syncLabel())}</span><span class="f-ver">v${APP_VERSION}</span></footer>
-  </main>`;
+  </main>${siteFooter()}`;
 }
 
 function passwordModal() {
@@ -174,7 +187,7 @@ function dayView() {
     </div></section>
     <section class="ticker ${n === 3 ? 'ok' : ''}" aria-live="polite"><span class="ai">${esc(C.aiName)}</span><span id="ticker">${esc(ui.ticker || (n === 3 ? C.aiLines.allClear : C.aiLines.idle[0]))}</span></section>
     <p class="howto">색이 다른 분자를 찾아 눌러 보세요 · 장치를 복구하면 시설물에서 보너스 게임이 열려요 · 보너스까지 모두 끝내면 식물에 이름을 붙일 수 있어요</p>
-  </main>`;
+  </main>${siteFooter()}`;
 }
 
 function lockModal(k) {
@@ -242,7 +255,7 @@ function completeModal() {
 function timeUpModal() {
   return `<div class="overlay" data-backdrop><section class="modal clear over" role="dialog" aria-modal="true" aria-label="시간 종료">
     <p class="kicker">TIME OVER</p><h2>${esc(C.timeUp)}</h2>
-    <p>장치 복구 ${doneList().length}/3 · 보너스 ${bonusList().length}/3 · 우리 식물은 <b>${STAGE[doneList().length]}</b> 단계</p>
+    <p>장치 복구 ${doneList().length}/3 · 보너스 ${bonusList().length}/3 · 우리 식물은 <b>${STAGE[doneList().length]}</b> 단계 · 연구 점수 <b>${scoreOf(team).total}점</b></p>
     ${certPanel()}</section></div>`;
 }
 function homeConfirm() {
@@ -258,7 +271,7 @@ function nightView() {
     ${topbar('night')}
     <section class="night-card"><div class="moon" aria-hidden="true"></div><p class="kicker">NIGHT ZONE</p><h1>밤의 온실</h1>
       <p>${esc(C.nightWaiting)}</p>
-      <p class="muted">낮 구역 진행: 장치 ${doneList().length}/3 · 보너스 ${bonusList().length}/3 — 스위치를 해로 돌리면 낮 구역으로 이동해요.</p></section></main>`;
+      <p class="muted">낮 구역 진행: 장치 ${doneList().length}/3 · 보너스 ${bonusList().length}/3 — 스위치를 해로 돌리면 낮 구역으로 이동해요.</p></section></main>${siteFooter()}`;
 }
 
 /* ───────── 5. 교사용 대시보드 ───────── */
@@ -293,11 +306,11 @@ function adminView() {
       <header><h3>${t.teamNo}모둠</h3><span class="mode-tag m-${t.mode === 'night' ? 'night' : 'day'}">${where}</span></header>
       <p class="crew">${crew || '<span class="muted">이름 없음</span>'}</p>
       ${zoneRow(t, 'day')}${zoneRow(t, 'night')}
-      <footer><span>힌트 ${KEYS.map(k => `${C.missions[k].icon}${t.day?.hints?.[k] || 0}`).join(' ')}</span>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
+      <footer><span>힌트 ${KEYS.map(k => `${C.missions[k].icon}${t.day?.hints?.[k] || 0}`).join(' ')}</span><span class="pts">🏅 ${scoreOf(t).total}점</span>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
         <button class="del" data-del="${esc(t.id)}">${ui.armed === t.id ? '정말 삭제?' : '기록 삭제'}</button></footer></article>`;
   };
   return `<main class="admin ${ui.adminBig ? 'big' : ''}">
-    <header class="topbar"><span class="team-badge">🛰️ 교사용 대시보드</span><span class="muted small">${esc(syncLabel())}</span><span class="f-ver">v${APP_VERSION}</span><span class="grow"></span>
+    <header class="topbar"><span class="team-badge">🛰️ 교사용 대시보드</span><span class="muted small">${esc(syncLabel())}</span><span class="grow"></span>
       <button class="ghost" data-big>${ui.adminBig ? '보통 크기' : '모니터 크게'}</button><button class="ghost" data-exit-admin>나가기</button></header>
     <section class="summary">
       <div><b>${list.length}</b><span>접속 모둠</span></div>
@@ -309,8 +322,8 @@ function adminView() {
     ${shown.length ? shown.map(g => { const [gr, c] = g.split('-'); const teams = list.filter(t => groupKey(t) === g).sort((a, b) => a.teamNo - b.teamNo);
       return `<section class="class-block"><h2>${gr}학년 ${c}반 <small>${teams.length}모둠 · 낮 완료 ${teams.filter(t => t.day?.finishedAt).length} · 밤 완료 ${teams.filter(t => t.night?.finishedAt).length}</small></h2><div class="team-grid">${teams.map(card).join('')}</div></section>`; }).join('')
       : `<section class="empty"><p>아직 입장한 모둠이 없어요.</p><p class="muted">학생 기기에서 출입증을 발급하고 입장하면 여기에 실시간으로 나타나요.</p></section>`}
-    <p class="reset-row"><button class="text-btn" data-clear-all>${ui.armed === '*' ? '한 번 더 누르면 모든 기록이 지워져요' : '모든 모둠 기록 지우기'}</button></p>
-  </main>`;
+    <p class="reset-row"><button class="text-btn" data-clear-hall>${ui.armed === 'hall' ? '한 번 더 누르면 명예의 전당이 지워져요' : '명예의 전당 기록 지우기'}</button><button class="text-btn" data-clear-all>${ui.armed === '*' ? '한 번 더 누르면 모든 기록이 지워져요' : '모든 모둠 기록 지우기'}</button></p>
+  </main>${siteFooter()}`;
 }
 
 /* ───────── 렌더 ───────── */
@@ -459,11 +472,12 @@ function startGame(g) {
   if (timeUp()) { toast('시간이 끝났어요. 인증서를 받아 보세요!'); sfx.error(); return; }
   if (!done(cfg.unlockBy)) { toast(C.aiLines.lockedGame); sfx.error(); return; }
   ui.modal = null; ui.solved = null; render();
+  const people = [team.leader, ...(team.members || [])].filter(Boolean);
   launchGame(g, key => {
     if (timeUp()) return;
     if (!Z().bonus?.[key]) { save({[`day/bonus/${key}`]: SERVER_TIME}); ui.grow = true; sfx.clear(); checkComplete(); }
     if (isComplete() && !Z().plantName) openCertModal('complete'); else render();
-  });
+  }, {people, leader: team.leader, teamLabel: `${team.classNo}반 ${team.teamNo}모둠`, teamId, addHall, fetchHall});
 }
 function solve(k) {
   if (!done(k)) { save({[`day/done/${k}`]: SERVER_TIME}); ui.grow = true; }
@@ -486,14 +500,14 @@ async function buildCert() {
     if (!Z().photo && C.photos?.length) save({'day/photo': C.photos[Math.floor(Math.random() * C.photos.length)]});
     photo = await loadPhoto(C.photos || [], Z().photo);
   }
-  const tier = C.certificate.tiers.find(t => locks >= t.locks && bonus >= t.bonus) || C.certificate.tiers[C.certificate.tiers.length - 1];
+  const sc = scoreOf(team), tier = {badge: sc.tier.badge, title: `${sc.tier.title} · ${sc.total}점`};
   const d = new Date(), o = potOpts();
   try {
     const canvas = await drawCertificate({
       title: C.certificate.title, tier, complete, photo: photo?.img || null, speed: complete && usedMs() <= C.certificate.speedMinutes * 60000,
       plantName: o.plantName, tagText: o.tagText, leader: team.leader, members: team.members || [], teamLabel: teamLabel(),
       stage: locks, bonus: bonusList(), timeText: o.timeText,
-      statsText: `장치 복구 ${locks}/3 · 보너스 게임 ${bonus}/3 · 힌트 ${hintsTotal()}단계 사용`,
+      statsText: `연구 점수 = 미션 ${sc.mission} + 시간 ${sc.time} − 힌트 ${sc.hint} · 장치 ${locks}/3 · 보너스 ${bonus}/3`,
       dateText: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
     });
     ui.cert = {canvas, url: canvas.toDataURL('image/png'), photo: !!photo};
@@ -625,6 +639,10 @@ function bind() {
     const id = b.dataset.del;
     if (ui.armed !== id) { arm(id); return; }
     ui.armed = null; await deleteTeam(id); delete teamsCache[id]; render();
+  });
+  $('[data-clear-hall]')?.addEventListener('click', async () => {
+    if (ui.armed !== 'hall') { arm('hall'); return; }
+    ui.armed = null; await clearHall(); render();
   });
   $('[data-clear-all]')?.addEventListener('click', async () => {
     if (ui.armed !== '*') { arm('*'); return; }

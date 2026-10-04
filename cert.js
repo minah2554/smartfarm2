@@ -4,7 +4,7 @@
 import {potSvg, svgToImage} from './plant.js';
 
 const W = 1080, H = 1440;
-const DISPLAY = "'Do Hyeon','Noto Sans KR',sans-serif", BODY = "'Noto Sans KR',sans-serif";
+const DISPLAY = "'PyeongChangPeace-Bold','LotteMartDream',sans-serif", BODY = "'LotteMartDream',sans-serif";
 
 function round(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function loadImage(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
@@ -22,7 +22,7 @@ export async function loadPhoto(list, preferred) {
 /* d: {title, tier:{badge,title}, speed, complete, photo(Image|null), plantName, leader, members[], teamLabel,
        stage, bonus[], timeText, statsText, dateText} */
 export async function drawCertificate(d) {
-  try { await document.fonts?.ready; } catch { /* 무시 */ }
+  try { await Promise.all(["40px 'PyeongChangPeace-Bold'", "700 30px 'LotteMartDream'", "400 30px 'LotteMartDream'"].map(f => document.fonts.load(f))); await document.fonts.ready; } catch { /* 글꼴을 못 불러오면 기본 글꼴 */ }
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const ctx = c.getContext('2d');
 
@@ -37,7 +37,7 @@ export async function drawCertificate(d) {
   ctx.textAlign = 'center'; ctx.fillStyle = '#8BD450'; ctx.font = `700 30px ${BODY}`;
   ctx.fillText('SMART FARM BIO LAB · DAY ZONE', W / 2, 108);
   ctx.fillStyle = '#FFFFFF'; ctx.font = `86px ${DISPLAY}`; ctx.fillText(d.title, W / 2, 200);
-  ctx.fillStyle = '#FFD23F'; fit(ctx, `${d.tier.badge} ${d.tier.title}`, W - 200, 52, DISPLAY); ctx.fillText(`${d.tier.badge} ${d.tier.title}`, W / 2, 272);
+  ctx.fillStyle = '#FFD23F'; fit(ctx, `${d.tier.badge} ${d.tier.title}`, W - 200, 52, BODY, 700); ctx.fillText(`${d.tier.badge} ${d.tier.title}`, W / 2, 272);
 
   // 폴라로이드 액자
   const fx = 110, fy = 312, fw = 860, fh = 860;
@@ -60,18 +60,18 @@ export async function drawCertificate(d) {
     ctx.save(); ctx.translate(ix + iw - 210, iy + ih - 120); ctx.rotate(-0.08);
     ctx.fillStyle = '#C79A6B'; ctx.fillRect(-8, 40, 16, 120);
     ctx.fillStyle = '#FFF8E1'; ctx.strokeStyle = '#C79A6B'; ctx.lineWidth = 6; round(ctx, -170, -40, 340, 96, 18); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#3B2A1A'; ctx.textAlign = 'center'; fit(ctx, d.plantName, 300, 50, DISPLAY); ctx.fillText(d.plantName, 0, 26);
+    ctx.fillStyle = '#3B2A1A'; ctx.textAlign = 'center'; fit(ctx, d.plantName, 300, 50, BODY, 700); ctx.fillText(d.plantName, 0, 26);
     ctx.restore();
   }
 
   // 액자 아래 글: 연구원 이름·시간
   ctx.textAlign = 'center'; ctx.fillStyle = '#3B2A1A';
   const names = [d.leader ? `★ ${d.leader}` : '', ...(d.members || [])].filter(Boolean).join('   ');
-  fit(ctx, names, fw - 80, 40, DISPLAY); ctx.fillText(names, W / 2, iy + ih + 70);
-  ctx.fillStyle = '#8A4A2A'; fit(ctx, d.timeText, fw - 80, 32, DISPLAY); ctx.fillText(d.timeText, W / 2, iy + ih + 122);
+  fit(ctx, names, fw - 80, 40, BODY, 700); ctx.fillText(names, W / 2, iy + ih + 70);
+  ctx.fillStyle = '#8A4A2A'; fit(ctx, d.timeText, fw - 80, 32, BODY, 700); ctx.fillText(d.timeText, W / 2, iy + ih + 122);
 
   // 아래 정보
-  ctx.fillStyle = '#E6FAF2'; ctx.font = `46px ${DISPLAY}`; ctx.fillText(d.teamLabel, W / 2, 1250);
+  ctx.fillStyle = '#E6FAF2'; ctx.font = `700 46px ${BODY}`; ctx.fillText(d.teamLabel, W / 2, 1250);
   ctx.fillStyle = '#A9CFC6'; fit(ctx, d.statsText, W - 200, 28, BODY, 700); ctx.fillText(d.statsText, W / 2, 1300);
   ctx.font = `700 26px ${BODY}`; ctx.fillText(`${d.dateText} · FARM-OS 인증`, W / 2, 1350);
 
@@ -79,7 +79,7 @@ export async function drawCertificate(d) {
   const stamp = (x, y, text, color, rot) => {
     ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 7;
     ctx.beginPath(); ctx.arc(0, 0, 78, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 64, 0, Math.PI * 2); ctx.stroke();
-    ctx.textAlign = 'center'; fit(ctx, text, 110, 30, DISPLAY); ctx.fillText(text, 0, 10); ctx.restore();
+    ctx.textAlign = 'center'; fit(ctx, text, 110, 30, BODY, 700); ctx.fillText(text, 0, 10); ctx.restore();
   };
   stamp(940, 1280, d.complete ? '복구 완료' : '진행 인증', d.complete ? '#8BD450' : '#FFD23F', -0.25);
   if (d.speed) stamp(140, 1280, '⚡ 스피드', '#FF8A3D', 0.2);

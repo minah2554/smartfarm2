@@ -27,7 +27,7 @@ export function potSvg(o) {
   const n = Math.min(3, o.stage || 0);
   const names = [o.leader ? `★${o.leader}` : '', ...(o.members || [])].filter(Boolean);
   const lines = names.length > 3 ? [names.slice(0, Math.ceil(names.length / 2)), names.slice(Math.ceil(names.length / 2))] : [names];
-  const font = `font-family="'Do Hyeon','Noto Sans KR',sans-serif"`;
+  const font = `font-family="'LotteMartDream',sans-serif" font-weight="700"`;
   const tag = o.plantName || o.tagText || '';
   const tagSize = Math.min(36, Math.floor(165 / (Math.max(1, tag.length) * 0.95)));
   const bg = o.background === false ? '' : `<rect width="600" height="720" rx="40" fill="#EAF6E6"/><circle cx="500" cy="110" r="54" fill="#FFE49B"/><path d="M0 610 Q300 585 600 610 V720 H0Z" fill="#C9E7BD"/>`;

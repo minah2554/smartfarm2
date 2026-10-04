@@ -3,10 +3,14 @@
 export const CONTENT = {
   title: '스마트팜 바이오 랩',
   aiName: 'FARM-OS',
+  // 화면 아래 푸터
+  footer: { version: 'v2.3.0', copyright: '© 2026 minari&zinbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
 
   // 연구원 출입증(첫 화면) 문구
   entry: {
-    kicker: '융합 방탈출 · 과학 × 밤 연구실',
+    kicker: '융합 방탈출 · 과학 × 가정',
+    title: '스마트팜<br>바이오 랩',      // 큰 제목 (<br>은 줄바꿈)
+    subtitle: '낮과 밤 연구실',          // 큰 제목 아래 부제목
     lead: '관리 AI가 고장 난 온실을 구하러 출동할 연구 모둠의 출입증을 발급하세요. 낮·밤 어느 구역에 들어가든 같은 출입증으로 기록이 이어져요.',
     badgeTitle: '연구원 출입증',
     leaderLabel: '대표 연구원 (팀장)',
@@ -90,7 +94,16 @@ export const CONTENT = {
       // 창고를 어지럽히는 물건 (찾을 물건과 헷갈리는 같은 그림은 넣지 마세요)
       decoys: ['🔧', '🔨', '⚙️', '🔩', '🧰', '🧺', '📦', '🥕', '🍅', '🌶️', '🥔', '🍂', '🍃', '🌱', '🌿', '🌵', '🌻', '🌷', '🐝', '🐛', '🐜', '🥾', '👢', '🧵', '🧶', '📏', '📐', '🔋', '⛏️', '🧯', '🧻', '🕯️', '📎', '✏️', '🖌️', '🔗', '🏷️', '🧷', '🥫', '🧴', '🎒', '⏰', '🧽', '🍄', '🌰', '🥒', '🔔', '📌']
     },
-    color: { title: '컬러 터치', icon: '🎨', place: '조명 제어판', unlockBy: 'light', instruction: '10초 동안 계속 바뀌는 칸 중 목표 색만 터치하세요. 다른 색은 감점됩니다.', target: '빨강', duration: 10, passAbove: 200, correctPoints: 20, wrongPoints: -15, changeMs: 650 }
+    color: {
+      title: '컬러 터치', icon: '🎨', place: '조명 제어판', unlockBy: 'light',
+      instruction: '10초 동안 계속 바뀌는 칸 중 목표 색만 터치하세요. 다른 색은 감점! 모드를 고르고 목표 점수를 넘기면 성공이에요.',
+      target: '빨강', duration: 10, correctPoints: 20, wrongPoints: -15, changeMs: 650,
+      modes: [
+        { key: 'easy', label: '🌱 쉬운 모드', goal: 50 },
+        { key: 'hard', label: '🔥 도전 모드', goal: 100 }
+      ],
+      hallSize: 10            // 명예의 전당에 보여 줄 순위 수 (모드별)
+    }
   },
 
   // 마무리·인증서
@@ -99,15 +112,24 @@ export const CONTENT = {
   nightWaiting: '밤 구역은 준비 중이에요. 밤 연구 책임자의 신호를 기다려 주세요.',
   certificate: {
     title: '스마트팜 연구 인증서',
-    speedMinutes: 25,                    // 이 시간 안에 모두 끝내면 ⚡ 스피드 도장
-    // 등급: 장치 복구 수(locks)와 보너스 수(bonus)가 모두 기준 이상인 첫 줄을 사용
+    // 연구 점수 = 미션 점수 + 시간 점수 − 힌트 감점 (최고 100점)
+    score: {
+      lock: 15,                 // 암호 장치 1개 복구 (3개 = 45점)
+      bonus: 10,                // 보너스 게임 1개 성공 (3개 = 30점)
+      // 모든 미션을 끝냈을 때 걸린 시간(분)에 따른 점수 — 위에서부터 처음 맞는 줄
+      time: [ { within: 20, points: 25 }, { within: 25, points: 20 }, { within: 30, points: 15 }, { within: 35, points: 10 } ],
+      hint: 2,                  // 힌트 1·2단계를 한 번 열 때마다 감점
+      answerHint: 5             // 3단계(정답 공개)를 열 때마다 감점
+    },
+    // 등급: 점수가 min 이상인 첫 줄
     tiers: [
-      { locks: 3, bonus: 3, badge: '🏆', title: '스마트팜 마스터 연구원' },
-      { locks: 3, bonus: 0, badge: '🌼', title: '개화 연구원' },
-      { locks: 2, bonus: 0, badge: '🌷', title: '꽃봉오리 연구원' },
-      { locks: 1, bonus: 0, badge: '🌿', title: '줄기 연구원' },
-      { locks: 0, bonus: 0, badge: '🌱', title: '새싹 연구원' }
-    ]
+      { min: 90, badge: '🏆', title: '마스터 연구원' },
+      { min: 75, badge: '🥇', title: '수석 연구원' },
+      { min: 55, badge: '🥈', title: '책임 연구원' },
+      { min: 35, badge: '🥉', title: '선임 연구원' },
+      { min: 0,  badge: '🌱', title: '새싹 연구원' }
+    ],
+    speedMinutes: 20             // 이 시간 안에 모두 끝내면 ⚡ 스피드 도장
   },
   // 모든 미션을 끝낸 모둠에게 무작위로 보여 줄 '꽃이 핀 화분' 사진 (photos 폴더에 넣은 파일 이름)
   // 파일이 없으면 자동으로 그림 화분으로 대신해요.

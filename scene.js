@@ -5,9 +5,9 @@
 
 const WATER = [[120, 720], [250, 812], [380, 700], [470, 842], [600, 742], [690, 860], [960, 868], [1060, 716], [1180, 812], [1300, 708], [1420, 838], [1520, 730], [330, 868], [860, 760]];
 const WATER_KEY = 9;      // 색이 다른 물 분자 번호 (위 목록의 순서, 0부터)
-const CARBON = [[420, 262], [545, 175], [655, 330], [760, 205], [880, 160], [1010, 262], [1135, 185], [470, 430], [930, 470], [525, 545], [1215, 360]];
+const CARBON = [[420, 262], [545, 175], [655, 330], [760, 205], [880, 160], [1010, 262], [1135, 185], [470, 430], [930, 470], [575, 560], [1215, 360]];
 const CARBON_KEY = 5;
-const PHOTON = [[1290, 105], [1250, 205], [1300, 295], [1395, 330], [1490, 285], [1525, 185], [1480, 60]];
+const PHOTON = [[1290, 105], [1250, 205], [1300, 295], [1395, 330], [1490, 285], [1525, 185], [1480, 60], [1385, 38]];
 const PHOTON_KEY = 2;
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -35,7 +35,6 @@ function molecule(kind, i, x, y, isKey, done) {
 function gameObject(key, cfg, state) {
   const unlocked = state.done.includes(cfg.unlockBy), cleared = state.bonus.includes(key);
   const cls = `facility ${unlocked ? 'open' : 'locked'} ${cleared ? 'cleared' : ''}`;
-  const label = cleared ? `${cfg.place} · 성공` : unlocked ? `${cfg.place} · 보너스!` : `${cfg.place}`;
   const art = {
     hidden: `<rect x="40" y="500" width="190" height="140" rx="10" fill="#9C6B43" stroke="#5E3B22" stroke-width="5"/>
              <path d="M25 510 L135 430 L245 510Z" fill="#B5473A" stroke="#7A2B22" stroke-width="5"/>
@@ -50,13 +49,20 @@ function gameObject(key, cfg, state) {
              <g stroke="#7FA6D9" stroke-width="3">${[1318, 1365, 1412].map(x => `<line x1="${x}" y1="462" x2="${x}" y2="548"/>`).join('')}<line x1="1272" y1="505" x2="1458" y2="505"/></g></g>
              <g>${['#FF5A4E', '#3EC6E0', '#8BD450'].map((c, i) => `<circle cx="${1322 + i * 26}" cy="${600}" r="9" fill="${c}"/>`).join('')}</g>`
   }[key];
+  const nameW = Math.round([...cfg.place].length * 21 + 36);
   const anchor = {hidden: [135, 452], observation: [335, 548], color: [1366, 430]}[key];
   const hit = {hidden: [25, 420, 225, 225], observation: [250, 520, 180, 125], color: [1260, 400, 210, 215]}[key];
   return `<g class="${cls}" data-game="${key}" role="button" tabindex="0" aria-label="${esc(cfg.place)} ${unlocked ? '보너스 게임 열기' : '잠김'}">
     <rect x="${hit[0]}" y="${hit[1]}" width="${hit[2]}" height="${hit[3]}" fill="#fff" fill-opacity="0"/>
     ${art}
-    <g class="tag" transform="translate(${anchor[0]} ${anchor[1] - 34})"><rect x="-86" y="-24" width="172" height="40" rx="20"/><text y="4" text-anchor="middle">${esc(label)}</text></g>
-    ${unlocked ? '' : `<g transform="translate(${anchor[0] + 78} ${anchor[1] - 46})"><circle r="17" fill="#173b32"/><text y="7" text-anchor="middle" font-size="18">🔒</text></g>`}
+    <g class="tag" transform="translate(${anchor[0]} ${anchor[1] - 34})">
+      <rect class="name" x="${-nameW / 2}" y="-21" width="${nameW}" height="38" rx="19"/><text class="name" y="5" text-anchor="middle">${esc(cfg.place)}</text>
+      <g class="badge ${cleared ? 'clear' : unlocked ? 'bonus' : 'lock'}" transform="translate(${nameW / 2 + (unlocked ? 58 : 24)} -2)">
+        ${unlocked ? `<rect class="b-shadow" x="-50" y="-14" width="100" height="32" rx="16"/><rect class="b-face" x="-50" y="-18" width="100" height="32" rx="16"/>
+        <text class="b-text" y="4" text-anchor="middle">${cleared ? '✓ CLEAR' : '★ BONUS'}</text>`
+        : `<circle r="17" fill="#173b32" stroke="#5FA79B" stroke-width="2"/><text y="6" text-anchor="middle" font-size="16">🔒</text>`}
+      </g>
+    </g>
   </g>`;
 }
 

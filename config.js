@@ -3,9 +3,9 @@
    ─────────────────────────────────────────────── */
 export const CONFIG = {
   grades: [2],          // 학년 선택 버튼 (예: [1, 2, 3]). 하나만 넣으면 그 학년으로 고정돼요.
-  classCount: 10,       // 반 선택 버튼 개수 (1반 ~ 10반)
+  classCount: 6,        // 반 선택 버튼 개수 (1반 ~ 6반)
   teamCount: 6,         // 모둠 선택 버튼 개수 (1모둠 ~ 6모둠)
-  memberMax: 5,         // 대표 연구원(팀장)을 뺀 연구원(팀원) 입력 칸 수
+  memberMax: 6,         // 대표 연구원(팀장)을 뺀 연구원(팀원) 입력 칸 수 (최대 6명)
   nameMaxLength: 10,    // 이름 한 칸에 쓸 수 있는 글자 수
 
   // 미션 제한 시간(분) — 입장하는 순간부터 카운트다운이 시작돼요.
@@ -27,6 +27,6 @@ export const CONFIG = {
   //               교사용 대시보드에 실시간으로 나타나요. (README의 'Firebase 연결' 참고)
   sync: {
     mode: 'firebase',
-    firebaseDatabaseURL: 'https://smartfarmdaynnight-default-rtdb.asia-southeast1.firebasedatabase.app'
+    firebaseDatabaseURL: 'https://smartfarmdaynnight-default-rtdb.asia-southeast1.firebasedatabase.app'   // 예시 형식: https://프로젝트이름-default-rtdb.asia-southeast1.firebasedatabase.app
   }
 };

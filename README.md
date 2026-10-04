@@ -19,7 +19,24 @@ ES 모듈을 쓰기 때문에 파일을 더블클릭(file://)하면 열리지 �
 5. **마무리**
    - 장치 3개 + 보너스 3개 모두 완료 → 식물 이름표 꽂기 → 실제 꽃 화분 사진(무작위) + 인증서
    - 시간 종료 → 키운 단계까지의 화분 그림으로 인증서 (이름 짓기 없음)
-   - 인증서에는 등급, 연구원 이름, 완료 시간 또는 진행도, 힌트 사용 수가 들어가요
+   - 연구 점수 = 미션(장치 15점×3 + 보너스 10점×3) + 완료 시간 점수(최대 25점) − 힌트 감점(1·2단계 2점, 3단계 5점)
+   - 점수에 따라 🏆 마스터 · 🥇 수석 · 🥈 책임 · 🥉 선임 · 🌱 새싹 연구원 등급, 20분 안에 끝내면 ⚡ 스피드 도장
+6. **컬러 터치 명예의 전당**: 쉬운 모드(50점)·도전 모드(100점) 선택 → 게임 후 '누가 해냈는지' 골라 기록 등록 → 모든 반이 함께 보는 순위표 (Firebase `/smartfarm/hall`)
+
+## 자주 고치는 곳 (바로 찾기)
+| 바꾸고 싶은 것 | 파일 | 항목 |
+|---|---|---|
+| 반 수 / 모둠 수 | `config.js` | `classCount: 6` / `teamCount: 6` |
+| 연구원(팀원) 칸 수 | `config.js` | `memberMax: 6` |
+| 학년 버튼 | `config.js` | `grades: [2]` → 예: `[1, 2, 3]` |
+| 제한 시간 | `config.js` | `missionMinutes: { day: 35, night: 35 }` |
+| 비밀번호 | `config.js` | `passwords` |
+| 처음 화면 위 작은 글씨·큰 제목·부제목 | `content.js` | `entry.kicker` / `entry.title` / `entry.subtitle` |
+| 인증서 점수 계산·등급 | `content.js` | `certificate.score` / `certificate.tiers` |
+| 컬러 터치 목표 점수 | `content.js` | `games.color.modes` (쉬운 50 · 도전 100) |
+| 푸터 버전·저작권 | `content.js` | `footer` |
+
+교사용 대시보드는 **처음 화면의 화분 그림을 누르면** 열려요 (비밀번호 필요).
 
 ## 선생님이 고치는 파일
 | 파일 | 내용 |
@@ -41,7 +58,7 @@ ES 모듈을 쓰기 때문에 파일을 더블클릭(file://)하면 열리지 �
    { "rules": { "smartfarm": { ".read": true, ".write": true } } }
    ```
 3. `config.js` → `sync: { mode: 'firebase', firebaseDatabaseURL: 'https://○○○-default-rtdb.asia-southeast1.firebasedatabase.app' }`
-4. 수업 뒤 대시보드에서 `모든 모둠 기록 지우기` (두 번 눌러야 지워져요)
+4. 수업 뒤 대시보드에서 `모든 모둠 기록 지우기`, `명예의 전당 기록 지우기` (두 번 눌러야 지워져요)
 
 - 대시보드는 Firebase 실시간 스트림으로 바로 갱신되고, 남은 시간은 1초마다 움직여요.
 - 남은 시간은 서버 시각 기준이라 기기마다 시계가 달라도 같아요.
@@ -53,3 +70,7 @@ ES 모듈을 쓰기 때문에 파일을 더블클릭(file://)하면 열리지 �
 학번은 받지 않아요. 이름은 **성 빼고 이름만** 또는 별명으로 쓰게 하면 더 안전해요. 수업이 끝나면 기록을 지워 주세요.
 
 밤 구역을 붙일 때: 기록의 `night` 칸(`night/startedAt`, `night/done/{미션}`, `night/finishedAt`)을 채우면 대시보드의 🌙 줄이 자동으로 움직여요.
+
+## 글꼴 · 아이콘
+- 본문: 롯데마트 드림(LotteMartDream), 제목: 평창평화체(PyeongChangPeace) — jsDelivr CDN에서 불러와요. 학교망에서 막히면 기본 글꼴로 보여요.
+- `icons/` : 파비콘(logo.svg, favicon-32.png), 홈 화면 바로가기(apple-touch-icon.png, icon-192/512.png), `manifest.webmanifest`

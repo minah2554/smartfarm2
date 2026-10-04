@@ -1,7 +1,7 @@
 import {CONTENT} from './content.js';
 const rand = n => Math.floor(Math.random()*n);
 const html = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-export function launchGame(type, onWin) {
+export function launchGame(type, onWin, ctx = {}) {
   const config=CONTENT.games[type]; let stop=()=>{};
   const layer=document.createElement('div'); layer.className='overlay game-layer';
   layer.innerHTML=`<section class="modal game ${type==='hidden'?'wide':''}" role="dialog" aria-modal="true"><button class="close ghost" type="button">닫기</button><p class="kicker">보너스 게임 · ${config.place||''}</p><h2>${config.title}</h2><p>${config.instruction}</p><div class="game-body"></div></section>`;
@@ -61,18 +61,48 @@ export function launchGame(type, onWin) {
     };
     stop=()=>clearInterval(timer);
   } else if(type==='color') {
-    const colors=[['빨강','#e7454c'],['파랑','#287acf'],['초록','#3fac68']];let remaining=config.duration,score=0, boardTimer, clockTimer, active=false;
-    body.innerHTML=`<p class="stats">목표: ${html(config.target)} · ${config.passAbove}점 초과<br>시간 <span class="time">${remaining}</span>초 · 점수 <span class="score">0</span>점</p><div class="grid"></div><button class="primary start">시작</button><p class="feedback" aria-live="polite"></p>`;
-    const cells=Array.from({length:16},()=>{const b=document.createElement('button');b.type='button';b.className='cell';b.disabled=true;body.querySelector('.grid').append(b);return b});
-    const refresh=()=>{cells.forEach(b=>{const [label,color]=colors[rand(3)];b.dataset.color=label;b.style.background=color;b.setAttribute('aria-label',label);b.disabled=false})};
-    cells.forEach(b=>b.onclick=()=>{if(!active||b.disabled)return;b.disabled=true;score+=b.dataset.color===config.target?config.correctPoints:config.wrongPoints;
-      body.querySelector('.score').textContent=score;b.style.filter='brightness(1.45)'});
-    body.querySelector('.start').onclick=()=>{body.querySelector('.start').remove();active=true;refresh();boardTimer=setInterval(refresh,config.changeMs);
-      clockTimer=setInterval(()=>{remaining--;body.querySelector('.time').textContent=remaining;if(remaining>0)return;
-        stop();cells.forEach(b=>b.disabled=true);if(score>config.passAbove)win();else{
-          body.querySelector('.feedback').textContent=`${score}점 · 목표 점수 초과 실패. 다시 도전할 수 있어요.`;
-          const again=document.createElement('button');again.className='primary';again.textContent=CONTENT.labels.retry;
-          again.onclick=()=>{close();launchGame(type,onWin)};body.append(again)}},1000)};
-    stop=()=>{active=false;clearInterval(boardTimer);clearInterval(clockTimer)};
+    // 모드 선택 → 10초 터치 → 결과·명예의 전당 등록
+    const colors=[['빨강','#e7454c'],['파랑','#287acf'],['초록','#3fac68']];
+    const modes=config.modes||[{key:'easy',label:'쉬운 모드',goal:50}], size=config.hallSize||10;
+    let boardTimer, clockTimer; stop=()=>{clearInterval(boardTimer);clearInterval(clockTimer)};
+    const hallList=async mode=>{const list=ctx.fetchHall?await ctx.fetchHall('color'):[];
+      return list.filter(e=>e&&e.mode===mode).sort((x,y)=>y.score-x.score||(x.at||0)-(y.at||0)).slice(0,size)};
+    const hallHtml=(rows,mine)=>rows.length?`<ol class="hall">${rows.map((e,i)=>`<li class="${mine&&e.at===mine.at&&e.name===mine.name?'me':''}"><b class="rk">${i<3?['🥇','🥈','🥉'][i]:i+1}</b><span class="nm">${html(e.name)}</span><span class="tm">${html(e.team||'')}</span><b class="sc">${e.score}점</b></li>`).join('')}</ol>`:'<p class="hall-empty">아직 기록이 없어요. 첫 번째 주인공이 되어 보세요!</p>';
+    const showHall=async(mode,mine)=>{const box=body.querySelector('.hall-box');if(!box)return;box.innerHTML='<p class="hall-empty">불러오는 중…</p>';box.innerHTML=hallHtml(await hallList(mode),mine)};
+    const menu=()=>{stop();
+      body.innerHTML=`<div class="mode-pick">${modes.map(m=>`<button class="mode-card ${m.key}" data-m="${m.key}"><span class="ml">${html(m.label)}</span><span class="mg">목표 <b>${m.goal}</b>점 이상</span></button>`).join('')}</div>
+        <section class="hall-wrap"><h3>🏛️ 명예의 전당</h3><div class="hall-tabs">${modes.map((m,i)=>`<button class="${i?'':'on'}" data-h="${m.key}">${html(m.label)}</button>`).join('')}</div><div class="hall-box"></div></section>`;
+      body.querySelectorAll('[data-h]').forEach(t=>t.onclick=()=>{body.querySelectorAll('[data-h]').forEach(x=>x.classList.toggle('on',x===t));showHall(t.dataset.h)});
+      body.querySelectorAll('[data-m]').forEach(bt=>bt.onclick=()=>play(modes.find(m=>m.key===bt.dataset.m)));
+      showHall(modes[0].key)};
+    const play=mode=>{let remaining=config.duration,score=0,active=false;
+      body.innerHTML=`<p class="stats"><span class="mode-chip ${mode.key}">${html(mode.label)} · 목표 ${mode.goal}점</span><br>목표 색 <b class="tcolor">${html(config.target)}</b> · 시간 <span class="time">${remaining}</span>초 · 점수 <span class="score">0</span>점</p><div class="grid"></div><button class="primary start">시작</button><p class="feedback" aria-live="polite"></p>`;
+      const cells=Array.from({length:16},()=>{const b=document.createElement('button');b.type='button';b.className='cell';b.disabled=true;body.querySelector('.grid').append(b);return b});
+      const refresh=()=>{cells.forEach(b=>{const [label,color]=colors[rand(3)];b.dataset.color=label;b.style.background=color;b.style.filter='';b.setAttribute('aria-label',label);b.disabled=false})};
+      cells.forEach(b=>b.onclick=()=>{if(!active||b.disabled)return;b.disabled=true;score+=b.dataset.color===config.target?config.correctPoints:config.wrongPoints;
+        body.querySelector('.score').textContent=score;b.style.filter='brightness(1.45)'});
+      body.querySelector('.start').onclick=()=>{body.querySelector('.start').remove();active=true;refresh();boardTimer=setInterval(refresh,config.changeMs);
+        clockTimer=setInterval(()=>{remaining--;body.querySelector('.time').textContent=remaining;if(remaining>0)return;
+          stop();active=false;cells.forEach(b=>b.disabled=true);result(mode,score)},1000)}};
+    const result=(mode,score)=>{const ok=score>=mode.goal;let mine=null;
+      const people=(ctx.people||[]).filter(Boolean);
+      body.innerHTML=`<div class="result ${ok?'ok':'no'}"><div class="big">${ok?'🎉':'💦'}</div><h3>${score}점 · ${ok?'목표 달성!':'목표 '+mode.goal+'점까지 '+(mode.goal-score)+'점 부족'}</h3></div>
+        <section class="reg"><h4>명예의 전당에 기록 남기기</h4><p class="muted">누가 해냈나요?</p>
+          <div class="who">${people.map((n,i)=>`<button class="chip" data-who="${html(n)}">${i===0&&ctx.leader===n?'★ ':''}${html(n)}</button>`).join('')}<button class="chip" data-who="${html(ctx.teamLabel?'모둠 전체':'우리 모둠')}">👥 모둠 전체</button></div>
+          <button class="primary reg-btn" disabled>기록 등록</button></section>
+        <section class="hall-wrap"><h3>🏛️ ${html(mode.label)} 명예의 전당</h3><div class="hall-box"></div></section>
+        <div class="row">${ok?'<button class="primary claim">🏆 보너스 받기</button>':''}<button class="ghost again">다시 도전</button></div>`;
+      let who=null;
+      body.querySelectorAll('[data-who]').forEach(c=>c.onclick=()=>{who=c.dataset.who;body.querySelectorAll('[data-who]').forEach(x=>x.classList.toggle('on',x===c));body.querySelector('.reg-btn').disabled=false});
+      body.querySelector('.reg-btn').onclick=async e=>{if(!who||mine)return;e.currentTarget.disabled=true;e.currentTarget.textContent='등록 완료!';
+        mine={mode:mode.key,score,name:who,team:ctx.teamLabel||'',teamId:ctx.teamId||'',at:Date.now()};
+        await ctx.addHall?.('color',{mode:mode.key,score,name:who,team:ctx.teamLabel||'',teamId:ctx.teamId||''});
+        body.querySelectorAll('[data-who]').forEach(x=>x.disabled=true);
+        const rows=await hallList(mode.key);const m=rows.find(r=>r.name===who&&r.score===score&&r.teamId===(ctx.teamId||''));
+        body.querySelector('.hall-box').innerHTML=hallHtml(rows,m||null)};
+      body.querySelector('.again').onclick=menu;
+      body.querySelector('.claim')?.addEventListener('click',win);
+      showHall(mode.key)};
+    menu();
   }
 }

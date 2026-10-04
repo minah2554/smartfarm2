@@ -117,3 +117,23 @@ export const watchTeams = cb => watch('/smartfarm/teams.json', () => true, cb);
 export const watchTeam = (id, cb) => watch(`/smartfarm/teams/${encodeURIComponent(id)}.json`, d => d === id || d === '*', cb);
 
 export const syncLabel = () => isRemote() ? '실시간 공유 (Firebase)' : '이 기기에만 저장 (미리보기)';
+
+/* ── 명예의 전당 (보너스 게임 기록) : /smartfarm/hall/{게임} ── */
+const HALL = 'sf2-hall';
+const readHall = () => { try { return JSON.parse(localStorage.getItem(HALL)) || {}; } catch { return {}; } };
+export async function addHall(game, entry) {
+  const rec = {...entry, at: now()};
+  const all = readHall(); (all[game] = all[game] || []).push(rec); try { localStorage.setItem(HALL, JSON.stringify(all)); } catch { /* 무시 */ }
+  if (isRemote()) { try { await fetch(`${base()}/smartfarm/hall/${game}.json`, {method: 'POST', body: JSON.stringify({...entry, at: SERVER_TIME})}); } catch { /* 무시 */ } }
+}
+export async function fetchHall(game) {
+  if (isRemote()) {
+    try { const r = await fetch(`${base()}/smartfarm/hall/${game}.json`, {cache: 'no-store'}); if (r.ok) return Object.values((await r.json()) || {}); }
+    catch { /* 로컬 기록으로 대체 */ }
+  }
+  return readHall()[game] || [];
+}
+export async function clearHall() {
+  try { localStorage.removeItem(HALL); } catch { /* 무시 */ }
+  if (isRemote()) { try { await fetch(`${base()}/smartfarm/hall.json`, {method: 'DELETE'}); } catch { /* 무시 */ } }
+}
