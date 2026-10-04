@@ -22,7 +22,7 @@ const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Strin
 const makeId = (g, c, t) => `g${g}-c${c}-t${t}`;
 const limitMs = mode => (CONFIG.missionMinutes?.[mode] || 35) * 60000;
 
-export const APP_VERSION = '2.1';
+export const APP_VERSION = '2.2';
 const ADMIN_HASH = 'ad5f52f58ed6ec6e7a641f2416f347674ac5933470079f2a18bc6269b1e80796';
 async function sha256(s) {
   try {

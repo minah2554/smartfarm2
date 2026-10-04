@@ -26,7 +26,7 @@ export const CONFIG = {
   //  'firebase' : Firebase Realtime Database에 저장 — 어느 기기로 입장해도 모둠 기록이 이어지고,
   //               교사용 대시보드에 실시간으로 나타나요. (README의 'Firebase 연결' 참고)
   sync: {
-    mode: 'local',
-    firebaseDatabaseURL: ''   // 예시 형식: https://프로젝트이름-default-rtdb.asia-southeast1.firebasedatabase.app
+    mode: 'firebase',
+    firebaseDatabaseURL: 'https://smartfarmdaynnight-default-rtdb.asia-southeast1.firebasedatabase.app'
   }
 };
