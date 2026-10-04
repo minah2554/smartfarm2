@@ -359,13 +359,14 @@ function adminView() {
   };
   return `<main class="admin ${ui.adminBig ? 'big' : ''}">
     <header class="topbar"><span class="team-badge">🛰️ 교사용 대시보드</span><span class="muted small">${esc(syncLabel())}</span><span class="grow"></span>
-      <button class="ghost" data-big>${ui.adminBig ? '보통 크기' : '모니터 크게'}</button><button class="ghost" data-exit-admin>나가기</button></header>
+      <button class="ghost ${ui.adminHall ? 'on' : ''}" data-hall-toggle aria-expanded="${!!ui.adminHall}">🏛️ 명예의 전당</button><button class="ghost" data-big>${ui.adminBig ? '보통 크기' : '모니터 크게'}</button><button class="ghost" data-exit-admin>나가기</button></header>
     <section class="summary">
       <div><b>${list.length}</b><span>접속 모둠</span></div>
       <div class="d"><b>${count('day', z => z.startedAt && !z.finishedAt && remaining({day: z}, 'day') > 0)}</b><span>☀️ 낮 진행 중</span></div>
       <div class="d"><b>${count('day', z => z.finishedAt)}</b><span>☀️ 낮 완료</span></div>
       <div class="n"><b>${count('night', z => z.startedAt && !z.finishedAt && remaining({night: z}, 'night') > 0)}</b><span>🌙 밤 진행 중</span></div>
       <div class="n"><b>${count('night', z => z.finishedAt)}</b><span>🌙 밤 완료</span></div></section>
+    ${ui.adminHall ? hallPanel() : ''}
     <nav class="filters"><button class="chip ${ui.adminFilter === 'all' ? 'on' : ''}" data-filter="all">전체 반</button>${groups.map(g => { const [gr, c] = g.split('-'); return `<button class="chip ${ui.adminFilter === g ? 'on' : ''}" data-filter="${g}">${gr}학년 ${c}반</button>`; }).join('')}</nav>
     ${shown.length ? shown.map(g => { const [gr, c] = g.split('-'); const teams = list.filter(t => groupKey(t) === g).sort((a, b) => a.teamNo - b.teamNo);
       return `<section class="class-block"><h2>${gr}학년 ${c}반 <small>${teams.length}모둠 · 낮 완료 ${teams.filter(t => t.day?.finishedAt).length} · 밤 완료 ${teams.filter(t => t.night?.finishedAt).length}</small></h2><div class="team-grid">${teams.map(card).join('')}</div></section>`; }).join('')
@@ -374,9 +375,21 @@ function adminView() {
   </main>${siteFooter()}`;
 }
 
+/* 교사용 대시보드: 명예의 전당 (컬러 터치 모드별 전체 순위) */
+function hallPanel() {
+  const G = C.games.color, rows = ui.hallData;
+  const when = at => { if (!at) return ''; const d = new Date(at); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const col = m => { const list = (rows || []).filter(e => e && e.mode === m.key).sort((x, y) => y.score - x.score || (x.at || 0) - (y.at || 0));
+    return `<article class="hall-col"><h3>${esc(m.label)} <small>${m.duration || G.duration}초 · 목표 ${m.goal}점 · ${list.length}개 기록</small></h3>
+      ${list.length ? `<ol class="hall">${list.map((e, i) => `<li><b class="rk">${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</b><span class="nm">${esc(e.name)}</span><span class="tm">${esc(e.team || '')}${e.at ? ` · ${when(e.at)}` : ''}</span><b class="sc">${e.score}점</b></li>`).join('')}</ol>` : '<p class="hall-empty">아직 기록이 없어요.</p>'}</article>`; };
+  return `<section class="hall-panel"><header><h2>🏛️ 명예의 전당 · ${esc(G.title)}</h2><span class="grow"></span><button class="text-btn" data-hall-refresh>새로고침</button></header>
+    ${rows ? `<div class="hall-cols">${G.modes.map(col).join('')}</div>` : '<p class="hall-empty">불러오는 중…</p>'}</section>`;
+}
+async function loadHall() { ui.hallData = await fetchHall('color'); if (view === 'admin' && ui.adminHall) render(); }
+
 /* ───────── 렌더 ───────── */
 function render() {
-  if (view !== 'prologue') { clearInterval(proType); clearTimeout(proNext); bgm.stop(); } else bgm.start();   // 스토리 영상에서만 배경음악
+  if (view !== 'prologue') { clearInterval(proType); clearTimeout(proNext); bgm.stop('prologue'); } else bgm.start('prologue');   // 스토리 영상에서만 배경음악
   if (view !== 'admin' && stopWatch) { stopWatch(); stopWatch = null; }
   document.body.dataset.view = view;
   if (team && isComplete() && !Z().finishedAt) checkComplete();   // 다른 기기에서 마지막 미션을 끝낸 경우
@@ -732,6 +745,8 @@ function bind() {
   // 대시보드
   $$('[data-filter]').forEach(b => b.onclick = () => { ui.adminFilter = b.dataset.filter; render(); });
   $('[data-big]')?.addEventListener('click', () => { ui.adminBig = !ui.adminBig; render(); });
+  $('[data-hall-toggle]')?.addEventListener('click', () => { ui.adminHall = !ui.adminHall; if (ui.adminHall) { ui.hallData = null; loadHall(); } render(); });
+  $('[data-hall-refresh]')?.addEventListener('click', () => { ui.hallData = null; render(); loadHall(); });
   $('[data-exit-admin]')?.addEventListener('click', () => { stopWatch?.(); stopWatch = null; go('home'); });
   const arm = key => { ui.armed = key; render(); setTimeout(() => { if (ui.armed === key) { ui.armed = null; if (view === 'admin') render(); } }, 3000); };
   $$('[data-del]').forEach(b => b.onclick = async () => {
@@ -741,7 +756,7 @@ function bind() {
   });
   $('[data-clear-hall]')?.addEventListener('click', async () => {
     if (ui.armed !== 'hall') { arm('hall'); return; }
-    ui.armed = null; await clearHall(); render();
+    ui.armed = null; await clearHall(); if (ui.adminHall) ui.hallData = []; render();
   });
   $('[data-clear-all]')?.addEventListener('click', async () => {
     if (ui.armed !== '*') { arm('*'); return; }
