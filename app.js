@@ -23,15 +23,6 @@ const toList = v => Array.isArray(v) ? v.filter(Boolean) : v && typeof v === 'ob
 const makeId = (g, c, t) => `g${g}-c${c}-t${t}`;
 const limitMs = mode => (CONFIG.missionMinutes?.[mode] || 35) * 60000;
 
-export const APP_VERSION = '2.5';
-const ADMIN_HASH = 'ad5f52f58ed6ec6e7a641f2416f347674ac5933470079f2a18bc6269b1e80796';
-async function sha256(s) {
-  try {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch { return ''; }
-}
-
 let device = load('sf2-device', {last: null, view: 'home', mode: 'day'});
 delete device.unlocked;   // 예전 버전에서 저장된 '출입 승인' 기록은 쓰지 않음
 const saveDevice = () => store('sf2-device', device);
@@ -100,7 +91,7 @@ function modeSwitch(cur, size = '') {
 }
 const muteBtn = () => `<button class="icon-btn" data-mute aria-label="효과음 ${isMuted() ? '켜기' : '끄기'}">${isMuted() ? '🔇' : '🔊'}</button>`;
 const LOGO = `<svg class="brand-logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#0E3B39"/><circle cx="47" cy="17" r="7" fill="#FFD23F"/><path d="M12 50 V32 Q12 18 32 14 Q52 18 52 32 V50" fill="none" stroke="#E6FAF2" stroke-width="4" stroke-linecap="round"/><path d="M32 50 V36" stroke="#8BD450" stroke-width="4" stroke-linecap="round"/><path d="M32 38 C24 38 20 33 20 27 C27 27 32 31 32 38Z M32 36 C32 29 37 25 44 25 C44 31 40 36 32 36Z" fill="#8BD450"/><path d="M8 50 H56" stroke="#C79A6B" stroke-width="5" stroke-linecap="round"/></svg>`;
-const siteFooter = () => `<footer class="site-foot">${LOGO}<span class="brand">스마트팜 바이오 랩</span><span class="ver f-ver">v${APP_VERSION}</span><span class="note">${esc(C.footer?.note || '')}</span><span class="grow"></span><span class="sync">${esc(syncLabel())}</span><span class="copy">${esc(C.footer?.copyright || '')}</span></footer>`;
+const siteFooter = () => `<footer class="site-foot">${LOGO}<span class="brand">스마트팜 바이오 랩</span><span class="ver">${esc(C.footer?.version || '')}</span><span class="note">${esc(C.footer?.note || '')}</span><span class="grow"></span><span class="sync">${esc(syncLabel())}</span><span class="copy">${esc(C.footer?.copyright || '')}</span></footer>`;
 const homeBtn = () => `<button class="home-btn" data-home aria-label="처음 화면으로">🏠 처음으로</button>`;
 function timerChip(mode) {
   const z = Z(mode);
@@ -321,7 +312,11 @@ function statusText(rec, mode) {
 function zoneRow(t, mode) {
   const z = t[mode] || {}, nodes = mode === 'day'
     ? [...KEYS.map(k => [C.missions[k].icon, !!z.done?.[k], C.missions[k].reward]), ...GAME_KEYS.map(g => [C.games[g].icon, !!z.bonus?.[g], C.games[g].title])]
-    : Object.keys(z.done || {}).map(k => ['●', true, k]).concat(Array.from({length: Math.max(0, 3 - Object.keys(z.done || {}).length)}, () => ['●', false, '']));
+    : (() => {   // 밤: 미션·보너스 개수는 config.js의 nightSlots (밤 구역이 정함)
+        const got = [...Object.keys(z.done || {}), ...Object.keys(z.bonus || {})];
+        const slots = Math.max(got.length, Number(CONFIG.nightSlots) || 0);
+        return Array.from({length: slots}, (_, i) => ['●', i < got.length, got[i] || '']);
+      })();
   const st = statusText(t, mode), cls = z.finishedAt ? 'fin' : st === '시간 종료' ? 'over' : z.startedAt ? 'run' : 'idle';
   return `<div class="zone z-${mode} ${cls}"><span class="zl">${mode === 'day' ? '☀️ 낮' : '🌙 밤'}</span>
     <div class="nodes">${nodes.map(([ic, on, title], i) => `${mode === 'day' && i === KEYS.length ? '<i class="sep"></i>' : ''}<span class="nd ${on ? 'on' : ''}" title="${esc(title)}">${ic}</span>`).join('')}</div>
@@ -345,7 +340,7 @@ function adminView() {
         <button class="del" data-del="${esc(t.id)}">${ui.armed === t.id ? '정말 삭제?' : '기록 삭제'}</button></footer></article>`;
   };
   return `<main class="admin ${ui.adminBig ? 'big' : ''}">
-    <header class="topbar"><span class="team-badge">🛰️ 교사용 대시보드</span><span class="muted small">${esc(syncLabel())}</span><span class="ver f-ver">v${APP_VERSION}</span><span class="grow"></span>
+    <header class="topbar"><span class="team-badge">🛰️ 교사용 대시보드</span><span class="muted small">${esc(syncLabel())}</span><span class="grow"></span>
       <button class="ghost" data-big>${ui.adminBig ? '보통 크기' : '모니터 크게'}</button><button class="ghost" data-exit-admin>나가기</button></header>
     <section class="summary">
       <div><b>${list.length}</b><span>접속 모둠</span></div>
@@ -467,10 +462,6 @@ function startTeamWatch() {
 /* 관리코드 확인: Vercel 서버(api/verify.js)에 물어본다. 코드는 브라우저에 내려오지 않음.
    내 컴퓨터(localhost)에서 서버 없이 미리 볼 때만 확인을 건너뜀 */
 async function checkCode(kind, code) {
-  if (kind === 'admin') {
-    const h = await sha256(String(code || '').trim().toLowerCase());
-    if (h === ADMIN_HASH) return 'ok';
-  }
   const local = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname) || location.protocol === 'file:';
   try {
     const r = await fetch(CONFIG.codeCheckURL || '/api/verify', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind, code})});
