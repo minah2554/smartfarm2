@@ -443,7 +443,6 @@ function typeText() {
   clearInterval(typeTimer);
   const el = app.querySelector('.brief-text'); if (!el) return;
   const full = el.dataset.type; let i = 0;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = full; return; }
   typeTimer = setInterval(() => { i += 2; el.textContent = full.slice(0, i); if (i % 6 === 0) sfx.type(); if (i >= full.length) { el.textContent = full; clearInterval(typeTimer); } }, 28);
 }
 /* 프롤로그: 자막을 한 글자씩 → 다 나오면 잠시 뒤 다음 장면 (마지막 장면은 버튼을 눌러야 넘어감) */
@@ -459,7 +458,6 @@ function playPrologue() {
     if (!last) proNext = setTimeout(() => stepPrologue(1), hold);
   };
   ui.proFinish = finish;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
   proType = setInterval(() => { i += 1; el.textContent = full.slice(0, i); if (i % 5 === 0) sfx.type(); if (i >= full.length) finish(); }, 42);
 }
 function stepPrologue(d) {

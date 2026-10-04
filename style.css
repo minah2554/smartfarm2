@@ -346,7 +346,8 @@ p,li,dd,label,legend{text-wrap:pretty}
   .hud{grid-template-columns:1fr 1fr}
   .stage{min-width:0}
 }
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+/* 휴대폰 '애니메이션 줄이기'·절전 모드에서도 이야기 효과(글자·장면)는 그대로 두고, 번쩍임·흔들림만 끕니다 */
+@media (prefers-reduced-motion:reduce){.pro-flash,.pro-shake,.pro-scan,.modal.shake,.glitch::before,.glitch::after{animation:none!important}}
 
 /* 처음 화면 추가 */
 .subtitle{font-family:var(--body);font-weight:700;letter-spacing:-.01em;font-size:clamp(24px,3.4vw,36px);color:var(--pollen);margin:10px 0 0}
