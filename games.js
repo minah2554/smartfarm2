@@ -61,7 +61,7 @@ export function launchGame(type, onWin, ctx = {}) {
     };
     stop=()=>clearInterval(timer);
   } else if(type==='color') {
-    // 모드 선택 → 10초 터치 → 결과·명예의 전당 등록
+    // 모드 선택 → 15초 터치(목표 색은 매번 무작위) → 결과·명예의 전당 등록
     const colors=[['빨강','#e7454c'],['파랑','#287acf'],['초록','#3fac68']];
     const modes=config.modes||[{key:'easy',label:'쉬운 모드',goal:50}], size=config.hallSize||10;
     let boardTimer, clockTimer; stop=()=>{clearInterval(boardTimer);clearInterval(clockTimer)};
@@ -76,10 +76,11 @@ export function launchGame(type, onWin, ctx = {}) {
       body.querySelectorAll('[data-m]').forEach(bt=>bt.onclick=()=>play(modes.find(m=>m.key===bt.dataset.m)));
       showHall(modes[0].key)};
     const play=mode=>{let remaining=config.duration,score=0,active=false;
-      body.innerHTML=`<p class="stats"><span class="mode-chip ${mode.key}">${html(mode.label)} · 목표 ${mode.goal}점</span><br>목표 색 <b class="tcolor">${html(config.target)}</b> · 시간 <span class="time">${remaining}</span>초 · 점수 <span class="score">0</span>점</p><div class="grid"></div><button class="primary start">시작</button><p class="feedback" aria-live="polite"></p>`;
+      const pool=colors.filter(c=>(config.targets||[config.target||'빨강']).includes(c[0])),[target,tHex]=(pool.length?pool:colors)[rand((pool.length?pool:colors).length)];
+      body.innerHTML=`<p class="stats"><span class="mode-chip ${mode.key}">${html(mode.label)} · 목표 ${mode.goal}점</span><br>목표 색 <b class="tcolor" style="background:${tHex}">${html(target)}</b> · 시간 <span class="time">${remaining}</span>초 · 점수 <span class="score">0</span>점</p><div class="grid"></div><button class="primary start">시작</button><p class="feedback" aria-live="polite"></p>`;
       const cells=Array.from({length:16},()=>{const b=document.createElement('button');b.type='button';b.className='cell';b.disabled=true;body.querySelector('.grid').append(b);return b});
       const refresh=()=>{cells.forEach(b=>{const [label,color]=colors[rand(3)];b.dataset.color=label;b.style.background=color;b.style.filter='';b.setAttribute('aria-label',label);b.disabled=false})};
-      cells.forEach(b=>b.onclick=()=>{if(!active||b.disabled)return;b.disabled=true;score+=b.dataset.color===config.target?config.correctPoints:config.wrongPoints;
+      cells.forEach(b=>b.onclick=()=>{if(!active||b.disabled)return;b.disabled=true;score+=b.dataset.color===target?config.correctPoints:config.wrongPoints;
         body.querySelector('.score').textContent=score;b.style.filter='brightness(1.45)'});
       body.querySelector('.start').onclick=()=>{body.querySelector('.start').remove();active=true;refresh();boardTimer=setInterval(refresh,config.changeMs);
         clockTimer=setInterval(()=>{remaining--;body.querySelector('.time').textContent=remaining;if(remaining>0)return;

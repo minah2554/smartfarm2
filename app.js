@@ -7,7 +7,7 @@ import {sceneSvg} from './scene.js';
 import {prologueScene} from './prologue.js';
 import {drawCertificate, downloadCanvas, loadPhoto} from './cert.js';
 import {getTeam, patchTeam, applyPatch, fetchTeams, watchTeams, watchTeam, deleteTeam, clearTeams, syncLabel, syncClock, now, SERVER_TIME, addHall, fetchHall, clearHall} from './sync.js';
-import {sfx, isMuted, toggleMute} from './sound.js';
+import {sfx, isMuted, toggleMute, bgm} from './sound.js';
 
 /* ───────── 상태 ─────────
    기기(sf2-device) : 이 기기가 마지막으로 입장한 모둠, 보던 화면 (관리코드는 입장할 때마다 새로 확인)
@@ -101,10 +101,11 @@ function timerChip(mode) {
   return `<span class="timer ${fin ? 'fin' : left <= 5 * 60000 ? 'hurry' : ''} ${left <= 0 && !fin ? 'over' : ''}" aria-label="남은 시간">${fin ? '✔ 완료' : '⏳'} <b id="clock">${fin ? (z.finishedAt - z.startedAt > 0 ? fmt(z.finishedAt - z.startedAt) : '') : fmt(left)}</b></span>`;
 }
 function topbar(mode) {
+  const M = C.menu || {story: '스토리 영상', brief: '작전 설명', rules: '점수 안내'};
   const certReady = mode === 'day' && (isComplete() || timeUp());
   return `<header class="topbar">${homeBtn()}<span class="team-badge">${esc(teamLabel())}</span>${timerChip(mode)}
     ${certReady ? `<button class="cert-btn" data-open="${isComplete() ? 'complete' : 'timeup'}">🏅 인증서</button>` : ''}
-    <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}${mode === 'day' ? '<button class="text-btn" data-prologue>프롤로그</button><button class="text-btn" data-rules>점수 안내</button>' : ''}<button class="text-btn" data-replay>브리핑</button></header>`;
+    <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}${mode === 'day' ? `<button class="text-btn" data-prologue>${esc(M.story)}</button>` : ''}<button class="text-btn" data-replay>${esc(M.brief)}</button>${mode === 'day' ? `<button class="text-btn" data-rules>${esc(M.rules)}</button>` : ''}</header>`;
 }
 
 /* ───────── 1. 처음 화면 : 연구원 출입증 ───────── */
@@ -176,14 +177,14 @@ function briefingView() {
 function prologueView() {
   const P = C.prologue || [], i = Math.min(ui.pro || 0, P.length - 1), s = P[i], last = i === P.length - 1, replay = !!Z('day').introSeen;
   return `<main class="prologue">
-    <section class="cine" aria-label="낮 구역 프롤로그">
+    <section class="cine" aria-label="낮 구역 스토리 영상">
       <div class="cine-stage" data-pro-tap>${prologueScene(s.scene)}</div>
-      <div class="cine-top"><span class="rec"></span><span class="ctag">${esc(s.tag)}</span><span class="grow"></span>${timerChip('day')}</div>
+      <div class="cine-top"><span class="rec"></span><span class="ctag">${esc(s.tag)}</span><span class="grow"></span><button class="icon-btn" data-pro-mute aria-label="소리 ${isMuted() ? '켜기' : '끄기'}">${isMuted() ? '🔇' : '🔊'}</button>${timerChip('day')}</div>
       <div class="cine-sub" data-pro-tap><p class="sub-text" data-type="${esc(s.text)}"></p></div>
       <div class="cine-bar" aria-hidden="true">${P.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"><b></b></i>`).join('')}</div>
       <div class="cine-ctl">${i ? '<button class="ghost" data-pro="-1">◀ 이전</button>' : ''}<span class="grow"></span>
         ${replay && !last ? '<button class="text-btn" data-pro="skip">건너뛰기</button>' : ''}
-        ${last ? `<button class="primary" data-pro="end">${team.storySeen ? '☀️ 낮 구역 입장' : '작전 브리핑 보기 ▶'}</button>` : '<button class="primary" data-pro="1">다음 ▶</button>'}</div>
+        ${last ? `<button class="primary" data-pro="end">${team.storySeen ? '☀️ 낮 구역 입장' : `${esc((C.menu || {}).brief || '작전 설명')} 보기 ▶`}</button>` : '<button class="primary" data-pro="1">다음 ▶</button>'}</div>
     </section></main>`;
 }
 
@@ -375,7 +376,7 @@ function adminView() {
 
 /* ───────── 렌더 ───────── */
 function render() {
-  if (view !== 'prologue') { clearInterval(proType); clearTimeout(proNext); }
+  if (view !== 'prologue') { clearInterval(proType); clearTimeout(proNext); bgm.stop(); } else bgm.start();   // 스토리 영상에서만 배경음악
   if (view !== 'admin' && stopWatch) { stopWatch(); stopWatch = null; }
   document.body.dataset.view = view;
   if (team && isComplete() && !Z().finishedAt) checkComplete();   // 다른 기기에서 마지막 미션을 끝낸 경우
@@ -648,6 +649,7 @@ function bind() {
     else pickModeInGame(b.dataset.mode);
   });
   $$('[data-mute]').forEach(b => b.onclick = () => { toggleMute(); render(); });
+  $('[data-pro-mute]')?.addEventListener('click', e => { const m = toggleMute(), b = e.currentTarget; b.textContent = m ? '🔇' : '🔊'; b.setAttribute('aria-label', `소리 ${m ? '켜기' : '끄기'}`); });
   $$('[data-close]').forEach(b => b.onclick = () => { if (ui.pwFor) { ui.pwFor = null; render(); } else closeModal(); });
   $$('[data-backdrop]').forEach(o => o.addEventListener('click', e => { if (e.target === o) { if (ui.pwFor) { ui.pwFor = null; render(); } else closeModal(); } }));
   $('[data-home]')?.addEventListener('click', () => { ui.modal = 'home'; sfx.tap(); render(); });

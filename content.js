@@ -4,7 +4,7 @@ export const CONTENT = {
   title: '스마트팜 바이오 랩',
   aiName: 'FARM-OS',
   // 화면 아래 푸터
-  footer: { version: 'v2.6.0', copyright: '© 2026 minari&zinbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
+  footer: { version: 'v2.7.0', copyright: '© 2026 minari&ginbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
 
   // 연구원 출입증(첫 화면) 문구
   entry: {
@@ -20,7 +20,10 @@ export const CONTENT = {
     resume: '이전 기록을 찾았어요. 이어서 진행해요.'
   },
 
-  // ☀️ 낮 구역 프롤로그 영상 (낮 구역에 처음 들어갈 때 자동 재생, 상단 '프롤로그'로 다시 보기)
+  // 상단 메뉴 버튼 이름 (왼쪽부터 이 순서로 보여요)
+  menu: { story: '스토리 영상', brief: '작전 설명', rules: '점수 안내' },
+
+  // ☀️ 낮 구역 스토리 영상 (낮 구역에 처음 들어갈 때 자동 재생, 상단 '스토리 영상'으로 다시 보기)
   //  scene: 장면 그림 이름(바꾸지 마세요) · tag: 화면 위 작은 제목 · text: 자막 (짧게!)
   prologue: [
     { scene: 'dawn',      tag: '긴급 통신 · 06:00', text: '06:00, 해가 떴다.\n지난밤 연구원들이 바이오 트윈을 재가동했지만, 경보 기록에 질문 하나가 남았다.' },
@@ -32,7 +35,7 @@ export const CONTENT = {
     { scene: 'mission',   tag: '작전 개시',         text: '해가 지기 전에 LOCK 1~3을 복구해\n당의 출발점, 광합성 공장을 다시 가동하라!' }
   ],
 
-  // 모둠이 처음 입장할 때 한 번 보여 주는 작전 브리핑 (낮·밤 공통). 상단 '브리핑' 버튼으로 다시 볼 수 있어요.
+  // 모둠이 처음 입장할 때 한 번 보여 주는 작전 브리핑 (낮·밤 공통). 상단 '작전 설명' 버튼으로 다시 볼 수 있어요.
   //  journey: true → 당의 여정 그림,  formula: true → 광합성 식 그림,  split: {day, night} → 낮·밤 구역 나란히,  orders: true → 우리 모둠 투입 구역 표시
   briefing: [
     { tag: '낮과 밤은 이어져 있다', journey: true, text: '스마트팜 바이오 랩의 낮 구역과 밤 구역은 하나의 \'당의 여정\'으로 이어져 있다. 낮에 잎이 만든 당이 밤에는 체관을 따라 이동하고, 가공식품이 되어 우리 몸에 들어온다.' },
@@ -114,8 +117,9 @@ export const CONTENT = {
     },
     color: {
       title: '컬러 터치', icon: '🎨', place: '조명 제어판', unlockBy: 'light',
-      instruction: '10초 동안 계속 바뀌는 칸 중 목표 색만 터치하세요. 다른 색은 감점! 모드를 고르고 목표 점수를 넘기면 성공이에요.',
-      target: '빨강', duration: 10, correctPoints: 20, wrongPoints: -15, changeMs: 650,
+      instruction: '15초 동안 계속 바뀌는 칸 중 목표 색만 터치하세요. 목표 색은 도전할 때마다 바뀌어요. 다른 색은 감점! 모드를 고르고 목표 점수를 넘기면 성공이에요.',
+      targets: ['빨강', '파랑', '초록'],   // 도전할 때마다 이 중 하나가 목표 색으로 뽑혀요
+      duration: 15, correctPoints: 20, wrongPoints: -15, changeMs: 650,
       modes: [
         { key: 'easy', label: '🌱 쉬운 모드', goal: 50 },
         { key: 'hard', label: '🔥 도전 모드', goal: 100 }
