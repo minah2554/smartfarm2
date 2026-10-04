@@ -49,9 +49,9 @@ export async function drawCertificate(d) {
     const s = Math.max(iw / d.photo.width, ih / d.photo.height), w = d.photo.width * s, h = d.photo.height * s;
     ctx.drawImage(d.photo, ix + (iw - w) / 2, iy + (ih - h) / 2, w, h);
   } else {
-    ctx.fillStyle = '#EAF6E6'; ctx.fillRect(ix, iy, iw, ih);
-    const pot = await svgToImage(potSvg({stage: d.stage, bonus: d.bonus, plantName: d.plantName, tagText: d.tagText, leader: d.leader, members: d.members, timeText: d.timeText, background: true}));
-    const ph = ih, pw = ph * 600 / 720; ctx.drawImage(pot, ix + (iw - pw) / 2, iy, pw, ph);
+    const pot = await svgToImage(potSvg({stage: d.stage, bonus: d.bonus, plantName: d.plantName, tagText: d.tagText}));
+    const s = Math.max(iw / 800, ih / 640), w = 800 * s, h = 640 * s;
+    ctx.drawImage(pot, ix + (iw - w) / 2, iy + (ih - h) / 2, w, h);
   }
   ctx.restore();
 
@@ -70,19 +70,22 @@ export async function drawCertificate(d) {
   fit(ctx, names, fw - 80, 40, BODY, 700); ctx.fillText(names, W / 2, iy + ih + 70);
   ctx.fillStyle = '#8A4A2A'; fit(ctx, d.timeText, fw - 80, 32, BODY, 700); ctx.fillText(d.timeText, W / 2, iy + ih + 122);
 
-  // 아래 정보
-  ctx.fillStyle = '#E6FAF2'; ctx.font = `700 46px ${BODY}`; ctx.fillText(d.teamLabel, W / 2, 1250);
-  ctx.fillStyle = '#A9CFC6'; fit(ctx, d.statsText, W - 200, 28, BODY, 700); ctx.fillText(d.statsText, W / 2, 1300);
-  ctx.font = `700 26px ${BODY}`; ctx.fillText(`${d.dateText} · FARM-OS 인증`, W / 2, 1350);
+  // 아래 정보 (양쪽 도장과 겹치지 않도록 가운데 600px 안에)
+  const mid = 600;
+  ctx.fillStyle = '#E6FAF2'; fit(ctx, d.teamLabel, mid, 46, BODY, 700); ctx.fillText(d.teamLabel, W / 2, 1246);
+  ctx.fillStyle = '#FFD23F'; fit(ctx, d.scoreText, mid, 28, BODY, 700); ctx.fillText(d.scoreText, W / 2, 1292);
+  ctx.fillStyle = '#A9CFC6'; fit(ctx, d.statsText, mid, 24, BODY, 700); ctx.fillText(d.statsText, W / 2, 1330);
+  fit(ctx, `${d.dateText} · FARM-OS 인증`, mid, 22, BODY, 400); ctx.fillText(`${d.dateText} · FARM-OS 인증`, W / 2, 1366);
 
   // 도장
   const stamp = (x, y, text, color, rot) => {
     ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 7;
-    ctx.beginPath(); ctx.arc(0, 0, 78, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 64, 0, Math.PI * 2); ctx.stroke();
-    ctx.textAlign = 'center'; fit(ctx, text, 110, 30, BODY, 700); ctx.fillText(text, 0, 10); ctx.restore();
+    ctx.beginPath(); ctx.arc(0, 0, 72, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 59, 0, Math.PI * 2); ctx.stroke();
+    ctx.textAlign = 'center'; const [a, b] = text; fit(ctx, a, 96, 26, BODY, 700); ctx.fillText(a, 0, b ? -4 : 9);
+    if (b) { fit(ctx, b, 96, 22, BODY, 700); ctx.fillText(b, 0, 24); } ctx.restore();
   };
-  stamp(940, 1280, d.complete ? '복구 완료' : '진행 인증', d.complete ? '#8BD450' : '#FFD23F', -0.25);
-  if (d.speed) stamp(140, 1280, '⚡ 스피드', '#FF8A3D', 0.2);
+  stamp(950, 1290, d.complete ? ['복구', '완료'] : ['진행', '인증'], d.complete ? '#8BD450' : '#FFD23F', -0.25);
+  if (d.speed) stamp(130, 1290, ['⚡', 'SPEED'], '#FF8A3D', 0.2);
   return c;
 }
 

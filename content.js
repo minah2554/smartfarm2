@@ -4,7 +4,7 @@ export const CONTENT = {
   title: '스마트팜 바이오 랩',
   aiName: 'FARM-OS',
   // 화면 아래 푸터
-  footer: { version: 'v2.3.0', copyright: '© 2026 minari&zinbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
+  footer: { version: 'v2.4.0', copyright: '© 2026 minari&zinbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
 
   // 연구원 출입증(첫 화면) 문구
   entry: {
@@ -45,7 +45,7 @@ export const CONTENT = {
   labels: {
     resultTab: '🔐 암호 입력', hintTab: '💡 힌트 보기',
     submit: '장치 복구', retry: '다시 도전',
-    name: '우리 식물의 이름', download: '🏅 인증서 저장', downloadPot: '🪴 화분 그림 저장'
+    name: '우리 식물의 이름', download: '🏅 인증서 저장'
   },
 
   missions: {

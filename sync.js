@@ -44,19 +44,31 @@ function patchLocal(id, patch) {
 }
 
 /* ── 서버에 못 보낸 기록은 모아 두었다가 다시 보낸다 ── */
-const readPending = () => { try { return JSON.parse(localStorage.getItem(PENDING)) || []; } catch { return []; } };
+const readPending = () => { try { return (JSON.parse(localStorage.getItem(PENDING)) || []).map((x, i) => x.uid ? x : {...x, uid: 'old' + i}); } catch { return []; } };
 const writePending = q => { try { localStorage.setItem(PENDING, JSON.stringify(q)); } catch { /* 무시 */ } };
-let flushing = false;
+let flushing = false, again = false;
+const dropFirst = uid => writePending(readPending().filter(x => x.uid !== uid));   // 보내는 동안 새로 쌓인 기록은 지우지 않음
 async function flush() {
-  if (!isRemote() || flushing) return; flushing = true;
-  let q = readPending();
-  while (q.length) {
-    const {id, patch} = q[0];
-    try { const r = await fetch(teamUrl(id), {method: 'PATCH', body: JSON.stringify({...patch, updatedAt: SERVER_TIME})}); if (!r.ok) break; }
-    catch { break; }
-    q.shift(); writePending(q);
+  if (!isRemote()) return;
+  if (flushing) { again = true; return; }
+  flushing = true;
+  try {
+    for (;;) {
+      const q = readPending(); if (!q.length) break;
+      const {id, patch, uid} = q[0];
+      let r;
+      try { r = await fetch(teamUrl(id), {method: 'PATCH', body: JSON.stringify({...patch, updatedAt: SERVER_TIME})}); }
+      catch { break; }   // 네트워크 끊김 → 나중에 다시
+      if (!r.ok) {
+        console.warn('[스마트팜] Firebase 저장 실패', r.status, '— Realtime Database 규칙을 확인하세요.');
+        if (r.status >= 500) break;
+      }
+      dropFirst(uid);
+    }
+  } finally {
+    flushing = false;
+    if (again) { again = false; flush(); }
   }
-  flushing = false;
 }
 if (typeof window !== 'undefined') { setInterval(flush, 8000); window.addEventListener('online', flush); }
 
@@ -68,7 +80,8 @@ export async function getTeam(id) {
       if (r.ok) {
         let rec = await r.json();
         // 아직 서버에 못 보낸 기록이 있으면 덧붙여서 화면이 뒤로 가지 않게 한다
-        readPending().filter(x => x.id === id).forEach(x => { rec = applyPatch(rec || {id}, x.patch); });
+        // (서버 시각 자리표시는 저장 순간의 시각으로 고정해 두었다가 덧붙인다 — 다시 불러올 때마다 시각이 바뀌지 않도록)
+        readPending().filter(x => x.id === id).forEach(x => { rec = applyPatch(rec || {id}, x.local || x.patch); });
         if (rec) { const all = readLocal(); all[id] = rec; writeLocal(all); }
         return rec || null;
       }
@@ -79,7 +92,10 @@ export async function getTeam(id) {
 
 export async function patchTeam(id, patch) {
   const rec = patchLocal(id, patch);
-  if (isRemote()) { writePending([...readPending(), {id, patch}]); await flush(); }
+  if (isRemote()) {
+    const local = Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, resolve(v)]));
+    writePending([...readPending(), {id, patch, local, uid: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}]); await flush();
+  }
   return rec;
 }
 

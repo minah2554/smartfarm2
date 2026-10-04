@@ -9,7 +9,7 @@ import {getTeam, patchTeam, applyPatch, fetchTeams, watchTeams, watchTeam, delet
 import {sfx, isMuted, toggleMute} from './sound.js';
 
 /* ───────── 상태 ─────────
-   기기(sf2-device) : 이 기기가 마지막으로 입장한 모둠, 비밀번호를 통과한 모드, 보던 화면
+   기기(sf2-device) : 이 기기가 마지막으로 입장한 모둠, 보던 화면 (관리코드는 입장할 때마다 새로 확인)
    모둠 기록(team)  : 학년·반·모둠, 연구원 이름, 낮·밤 진행 → sync.js가 저장·공유 (어느 기기에서 입장해도 이어짐) */
 const KEYS = Object.keys(C.missions), GAME_KEYS = Object.keys(C.games);
 const STAGE = ['새싹', '줄기', '꽃봉오리', '꽃'], GROW_TO = ['새싹으로', '줄기로', '꽃봉오리로', '꽃으로'];
@@ -19,10 +19,11 @@ const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 const norm = (s, cp) => { let v = String(s).trim().replace(/\s+/g, '').toUpperCase(); if (cp) v = v.replace(/0/g, 'O'); return v; };
 const cleanName = s => String(s || '').replace(/\s+/g, ' ').trim().slice(0, CONFIG.nameMaxLength);
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+const list = v => Array.isArray(v) ? v.filter(Boolean) : v && typeof v === 'object' ? Object.values(v).filter(Boolean) : [];   // Firebase가 배열을 객체로 돌려줄 때 대비
 const makeId = (g, c, t) => `g${g}-c${c}-t${t}`;
 const limitMs = mode => (CONFIG.missionMinutes?.[mode] || 35) * 60000;
 
-export const APP_VERSION = '2.3';
+export const APP_VERSION = '2.4';
 const ADMIN_HASH = 'ad5f52f58ed6ec6e7a641f2416f347674ac5933470079f2a18bc6269b1e80796';
 async function sha256(s) {
   try {
@@ -31,8 +32,15 @@ async function sha256(s) {
   } catch { return ''; }
 }
 
-let device = load('sf2-device', {last: null, unlocked: {}, view: 'home', mode: 'day'});
+let device = load('sf2-device', {last: null, view: 'home', mode: 'day'});
+delete device.unlocked;   // 예전 버전에서 저장된 '출입 승인' 기록은 쓰지 않음
 const saveDevice = () => store('sf2-device', device);
+// 관리코드 통과 기록은 이 탭(세션)에만 — 새로고침하면 이어지고, 처음 화면으로 나가거나 브라우저를 닫으면 다시 물어봄
+const session = {
+  ok: m => { try { return sessionStorage.getItem('sf2-ok-' + m) === '1'; } catch { return false; } },
+  set: m => { try { sessionStorage.setItem('sf2-ok-' + m, '1'); } catch { /* 무시 */ } },
+  clear: () => { try { ['day', 'night'].forEach(m => sessionStorage.removeItem('sf2-ok-' + m)); } catch { /* 무시 */ } }
+};
 
 let team = null, teamId = null, stopTeamWatch = null;
 const app = document.querySelector('#app');
@@ -104,7 +112,7 @@ function topbar(mode) {
   const certReady = mode === 'day' && (isComplete() || timeUp());
   return `<header class="topbar">${homeBtn()}<span class="team-badge">${esc(teamLabel())}</span>${timerChip(mode)}
     ${certReady ? `<button class="cert-btn" data-open="${isComplete() ? 'complete' : 'timeup'}">🏅 인증서</button>` : ''}
-    <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}<button class="text-btn" data-replay>브리핑</button></header>`;
+    <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}${mode === 'day' ? '<button class="text-btn" data-rules>점수 안내</button>' : ''}<button class="text-btn" data-replay>브리핑</button></header>`;
 }
 
 /* ───────── 1. 처음 화면 : 연구원 출입증 ───────── */
@@ -113,7 +121,6 @@ function homeView() {
   const chips = (list, sel, key, unit) => list.map(i => `<button type="button" class="chip ${sel === i ? 'on' : ''}" data-pick="${key}" data-val="${i}">${i}${unit}</button>`).join('');
   const range = n => Array.from({length: n}, (_, i) => i + 1);
   const ready = f.grade && f.classNo && f.teamNo;
-  const needPw = !device.unlocked?.[f.mode];
   const rec = ui.found;
   const recLine = rec ? `<p class="found">📂 ${esc(E.resume)} <small>낮 ${['done', 'bonus'].reduce((a, k) => a + Object.keys(rec.day?.[k] || {}).length, 0)}/6 · ${esc(statusText(rec, 'day'))} · 밤 ${esc(statusText(rec, 'night'))}</small></p>` : '';
   return `<main class="home">
@@ -133,7 +140,7 @@ function homeView() {
       <label class="lbl">${esc(E.leaderLabel)}<input class="field" name="leader" data-field="leader" maxlength="${CONFIG.nameMaxLength}" value="${esc(f.leader)}" placeholder="이름"></label>
       <fieldset><legend>${esc(E.memberLabel)}</legend><div class="members">${f.members.map((m, i) => `<input class="field" data-member="${i}" maxlength="${CONFIG.nameMaxLength}" value="${esc(m)}" placeholder="연구원 ${i + 1}" aria-label="연구원 ${i + 1} 이름">`).join('')}</div></fieldset>
       <div class="entry-mode"><span class="legend">${esc(E.modeLabel)}</span>${modeSwitch(f.mode)}</div>
-      ${needPw ? `<label class="lbl">${f.mode === 'day' ? '☀️ 낮' : '🌙 밤'} 구역 비밀번호<input class="field pw-field" type="password" data-field="pw" value="${esc(f.pw)}" placeholder="선생님이 알려 준 비밀번호"></label>` : `<p class="muted small">✔ 이 기기는 ${f.mode === 'day' ? '낮' : '밤'} 구역 출입이 승인되어 있어요.</p>`}
+      <label class="lbl">${f.mode === 'day' ? '☀️ 낮 구역' : '🌙 밤 구역'} 책임자 관리코드<input class="field pw-field" type="password" data-field="pw" value="${esc(f.pw)}" placeholder="${f.mode === 'day' ? '낮' : '밤'} 연구 책임자에게 받은 관리코드" autocomplete="off"></label>
       <p class="feedback" aria-live="polite">${esc(f.error)}</p>
       <button class="primary wide" type="submit" ${ready ? '' : 'disabled'}>${ready ? `${esc(E.enter)} · ${CONFIG.missionMinutes[f.mode]}분 시작` : '학년·반·모둠을 골라 주세요'}</button>
     </form>
@@ -142,11 +149,11 @@ function homeView() {
 
 function passwordModal() {
   const kind = ui.pwFor, isAdmin = kind === 'admin', isDay = kind === 'day';
-  return `<div class="overlay" data-backdrop><section class="modal pw ${isDay ? 'sunny' : isAdmin ? 'admin' : 'moony'}" role="dialog" aria-modal="true" aria-label="비밀번호 입력">
+  return `<div class="overlay" data-backdrop><section class="modal pw ${isDay ? 'sunny' : isAdmin ? 'admin' : 'moony'}" role="dialog" aria-modal="true" aria-label="관리코드 입력">
     <button class="close ghost" data-close>닫기</button>
     <div class="pw-icon">${isAdmin ? '🛰️' : isDay ? '☀️' : '🌙'}</div>
     <h2>${isAdmin ? '교사용 대시보드' : isDay ? '낮 구역 출입 승인' : '밤 구역 출입 승인'}</h2>
-    <form id="pw-form"><input class="code-input" name="pw" type="password" autocomplete="off" aria-label="비밀번호" placeholder="비밀번호" required>
+    <form id="pw-form"><input class="code-input" name="pw" type="password" autocomplete="off" aria-label="관리코드" placeholder="${isAdmin ? '관리자 코드' : '책임자 관리코드'}" required>
     <button class="primary wide" type="submit">입장</button></form>
     <p class="feedback" aria-live="polite">${esc(ui.pwError)}</p></section></div>`;
 }
@@ -232,24 +239,52 @@ function hintPane(k) {
 function potOpts(nameOverride) {
   const n = doneList().length, complete = isComplete();
   return {stage: n, bonus: bonusList(), plantName: complete ? (nameOverride ?? Z().plantName ?? '') : '', tagText: complete ? '이름을 지어 주세요' : `${STAGE[n]} 단계`,
-    leader: team.leader, members: team.members || [], teamLabel: teamLabel(),
-    timeText: complete ? `⏱ 미션 완료 ${fmt(usedMs())}` : `⏱ 시간 종료 · 진행 ${n + bonusList().length}/6`};
+    timeText: complete ? (Z().startedAt ? `⏱ 미션 완료 ${fmt(usedMs())}` : '⏱ 미션 완료') : `⏱ 시간 종료 · 진행 ${n + bonusList().length}/6`};
 }
+const crewText = () => [team.leader ? `★ ${team.leader}` : '', ...list(team.members)].filter(Boolean).join('  ');
+const potCaption = () => `<p class="pot-crew">${esc(crewText())}</p><p class="pot-time">${esc(potOpts().timeText)}</p>`;
 function certPanel() {
   const ready = ui.cert && !ui.certBusy;
   return `<div class="cert-box">${ready ? `<img class="cert-img" src="${ui.cert.url}" alt="연구 인증서 미리보기">` : '<div class="cert-wait">인증서를 만드는 중…</div>'}</div>
-    <div class="row"><button class="primary" data-dl-cert ${ready ? '' : 'disabled'}>${esc(C.labels.download)}</button><button class="ghost" data-dl-pot>${esc(C.labels.downloadPot)}</button><button class="ghost" data-close>온실 보기</button></div>
+    <div class="row"><button class="primary" data-dl-cert ${ready ? '' : 'disabled'}>${esc(C.labels.download)}</button><button class="ghost" data-close>온실 보기</button></div>
     <p class="muted small">저장이 안 되는 기기라면 인증서 그림을 길게 눌러 저장하세요.</p>`;
 }
 function completeModal() {
   const named = !!Z().plantName;
   return `<div class="overlay" data-backdrop><section class="modal clear" role="dialog" aria-modal="true" aria-label="낮 구역 완전 복구">
     <div class="sunset" aria-hidden="true"></div>
-    <p class="kicker">DAY CLEAR · ${fmt(usedMs())}</p><h2>${esc(named ? `‘${Z().plantName}’이(가) 활짝 피었어요!` : C.completion)}</h2>
+    <p class="kicker">DAY CLEAR${Z().startedAt ? ` · ${fmt(usedMs())}` : ''}</p><h2>${esc(named ? `‘${Z().plantName}’이(가) 활짝 피었어요!` : C.completion)}</h2>
     ${named ? `${ui.cert?.photo ? `<p class="photo-note">📸 우리 식물이 실제로 이렇게 꽃을 피웠어요!</p>` : ''}${certPanel()}<button class="text-btn" data-rename>이름 다시 짓기</button>`
-      : `<div class="pot-preview" id="pot-preview">${potSvg(potOpts(ui.nameDraft || ''))}</div>
+      : `<div class="pot-preview" id="pot-preview">${potSvg(potOpts(ui.nameDraft || ''))}</div>${potCaption()}
       <form id="name-form" class="code-form"><input id="plant-name" class="field" maxlength="8" value="${esc(ui.nameDraft || '')}" placeholder="식물 이름 (8글자까지)" aria-label="${esc(C.labels.name)}" required>
       <button class="primary" type="submit">이름표 꽂기</button></form><p class="feedback" aria-live="polite">${esc(ui.feedback)}</p>`}
+  </section></div>`;
+}
+/* 낮 구역 첫 입장 안내: 인증서 점수·등급·시간 */
+function rulesModal() {
+  const S = C.certificate.score, T = C.certificate.tiers, ok = !!Z().rulesOk, min = CONFIG.missionMinutes.day;
+  const maxMission = KEYS.length * S.lock + GAME_KEYS.length * S.bonus, maxTime = Math.max(...S.time.map(t => t.points));
+  return `<div class="overlay" data-backdrop><section class="modal rules" role="dialog" aria-modal="true" aria-label="연구 인증서 안내">
+    ${ok ? '<button class="close ghost" data-close>닫기</button>' : ''}
+    <p class="kicker">FARM-OS 작전 안내 · 낮 구역</p>
+    <h2>📋 연구 인증서는 이렇게 받아요</h2>
+    <p class="rule-lead">제한 시간 <b>${min}분</b> — 타이머는 이미 흐르고 있어요! ⏳</p>
+    <article class="rule-box"><h3>🎯 미션 완료 조건</h3>
+      <ul><li>암호 장치 ${KEYS.length}개 + 보너스 게임 ${GAME_KEYS.length}개를 모두 성공하면 <b>식물 이름표</b>를 꽂고 <b>꽃 화분 기념사진 인증서</b>를 받아요.</li>
+      <li>시간 안에 다 못 끝내도 괜찮아요. <b>키운 만큼</b> 인증서를 받아요.</li>
+      <li>보너스 게임을 하나 성공할 때마다 식물에 <b>🍅 토마토</b>가 하나씩 열려요 (최대 ${GAME_KEYS.length}개).</li></ul></article>
+    <article class="rule-box"><h3>🧮 연구 점수 계산 (최고 ${maxMission + maxTime}점)</h3>
+      <table class="rule-table"><tbody>
+        <tr><th>암호 장치 복구</th><td>1개당 <b>+${S.lock}</b>점</td><td class="muted">최대 ${KEYS.length * S.lock}점</td></tr>
+        <tr><th>보너스 게임 성공</th><td>1개당 <b>+${S.bonus}</b>점</td><td class="muted">최대 ${GAME_KEYS.length * S.bonus}점</td></tr>
+        <tr><th>완료 시간 보너스</th><td colspan="2">${S.time.map(t => `${t.within}분 안 <b>+${t.points}</b>`).join(' · ')}<br><small class="muted">모든 미션(장치+보너스)을 끝냈을 때만</small></td></tr>
+        <tr><th>힌트 사용</th><td colspan="2">1·2단계 열 때마다 <b class="neg">−${S.hint}</b> · 3단계(정답) <b class="neg">−${S.answerHint}</b></td></tr>
+      </tbody></table></article>
+    <article class="rule-box"><h3>🏅 연구원 등급</h3>
+      <div class="tier-row">${T.map(t => `<span class="tier"><b>${t.badge}</b>${esc(t.title)}<small>${t.min}점 이상</small></span>`).join('')}</div>
+      <p class="muted small">⚡ ${C.certificate.speedMinutes}분 안에 모두 끝내면 인증서에 스피드 도장이 찍혀요.</p></article>
+    ${ok ? '' : `<label class="agree"><input type="checkbox" id="rules-agree"> 확인했습니다</label>
+    <button class="primary wide" data-rules-ok disabled>작전 시작!</button>`}
   </section></div>`;
 }
 function timeUpModal() {
@@ -301,7 +336,7 @@ function adminView() {
   const card = t => {
     const ago = Math.max(0, Math.round((now() - (t.updatedAt || 0)) / 1000));
     const where = t.mode === 'night' ? '🌙 밤' : '☀️ 낮';
-    const crew = [t.leader ? `★ ${esc(t.leader)}` : '', ...(t.members || []).map(esc)].filter(Boolean).join(' · ');
+    const crew = [t.leader ? `★ ${esc(t.leader)}` : '', ...list(t.members).map(esc)].filter(Boolean).join(' · ');
     return `<article class="team-card ${t.day?.finishedAt ? 'clear' : ''}">
       <header><h3>${t.teamNo}모둠</h3><span class="mode-tag m-${t.mode === 'night' ? 'night' : 'day'}">${where}</span></header>
       <p class="crew">${crew || '<span class="muted">이름 없음</span>'}</p>
@@ -310,7 +345,7 @@ function adminView() {
         <button class="del" data-del="${esc(t.id)}">${ui.armed === t.id ? '정말 삭제?' : '기록 삭제'}</button></footer></article>`;
   };
   return `<main class="admin ${ui.adminBig ? 'big' : ''}">
-    <header class="topbar"><span class="team-badge">🛰️ 교사용 대시보드</span><span class="muted small">${esc(syncLabel())}</span><span class="grow"></span>
+    <header class="topbar"><span class="team-badge">🛰️ 교사용 대시보드</span><span class="muted small">${esc(syncLabel())}</span><span class="ver f-ver">v${APP_VERSION}</span><span class="grow"></span>
       <button class="ghost" data-big>${ui.adminBig ? '보통 크기' : '모니터 크게'}</button><button class="ghost" data-exit-admin>나가기</button></header>
     <section class="summary">
       <div><b>${list.length}</b><span>접속 모둠</span></div>
@@ -335,10 +370,12 @@ function render() {
   if (view === 'home') html = homeView();
   else if (view === 'briefing') html = briefingView();
   else if (view === 'day') {
+    if (!Z().rulesOk && !ui.modal && !timeUp()) ui.modal = 'rules';   // 낮 구역 첫 입장 → 인증서 안내
     html = dayView();
     if (ui.modal === 'complete') html += completeModal();
     else if (ui.modal === 'timeup') html += timeUpModal();
     else if (ui.modal === 'home') html += homeConfirm();
+    else if (ui.modal === 'rules') html += rulesModal();
     else if (ui.modal) html += lockModal(ui.modal);
   } else if (view === 'night') html = nightView() + (ui.modal === 'home' ? homeConfirm() : '');
   else if (view === 'admin') html = adminView();
@@ -405,7 +442,7 @@ async function lookupTeam() {
   ui.found = rec && rec.grade ? rec : null;
   if (ui.found && !f.leader.trim() && !f.members.some(m => m.trim())) {
     f.leader = ui.found.leader || '';
-    f.members = Array.from({length: CONFIG.memberMax}, (_, i) => (ui.found.members || [])[i] || '');
+    f.members = Array.from({length: CONFIG.memberMax}, (_, i) => list(ui.found.members)[i] || '');
   }
   render();
 }
@@ -413,7 +450,12 @@ async function lookupTeam() {
 function startTeamWatch() {
   stopTeamWatch?.();
   stopTeamWatch = watchTeam(teamId, async () => {
-    const rec = await getTeam(teamId); if (!rec || !team) return;
+    if (!team) return;
+    const rec = await getTeam(teamId);
+    if (!rec) {   // 선생님이 대시보드에서 이 모둠 기록을 지운 경우 → 처음 화면으로
+      if (['day', 'night', 'briefing'].includes(view)) { goHome(); ui.found = null; ui.form.error = '선생님이 이 모둠 기록을 초기화했어요. 출입증을 다시 확인하고 입장하세요.'; render(); }
+      return;
+    }
     const sig = r => JSON.stringify([r.day, r.night, r.leader, r.members, r.storySeen]);
     if (sig(rec) === sig(team)) { team = rec; return; }
     team = rec;
@@ -426,10 +468,9 @@ async function enterTeam() {
   const f = ui.form;
   f.leader = cleanName(f.leader); f.members = f.members.map(cleanName);
   if (!f.leader) { f.error = '대표 연구원(팀장) 이름을 적어 주세요.'; sfx.error(); render(); return; }
-  if (!device.unlocked?.[f.mode]) {
-    if (norm(f.pw) !== norm(CONFIG.passwords[f.mode])) { f.error = '비밀번호가 맞지 않아요. 선생님께 확인하세요.'; f.pw = ''; sfx.error(); render(); return; }
-    device.unlocked = {...device.unlocked, [f.mode]: true};
-  }
+  // 관리코드는 처음 화면에서 입장할 때마다 확인 (이 기기에 기억하지 않음)
+  if (norm(f.pw) !== norm(CONFIG.passwords[f.mode])) { f.error = `${f.mode === 'day' ? '낮' : '밤'} 구역 관리코드가 맞지 않아요. 연구 책임자(선생님)께 확인하세요.`; f.pw = ''; sfx.error(); render(); return; }
+  session.set(f.mode);
   teamId = makeId(f.grade, f.classNo, f.teamNo);
   team = (await getTeam(teamId)) || {id: teamId};
   const patch = {id: teamId, grade: f.grade, classNo: f.classNo, teamNo: f.teamNo, leader: f.leader, members: f.members.filter(Boolean)};
@@ -454,7 +495,7 @@ function pickModeInGame(kind) {
   const cur = view === 'night' ? 'night' : 'day';
   if (kind === cur) return;
   sfx.tap();
-  if (device.unlocked?.[kind]) enterMode(kind); else { ui.pwFor = kind; ui.pwError = ''; render(); }
+  ui.pwFor = kind; ui.pwError = ''; render();   // 다른 구역으로 옮길 때도 그 구역 관리코드 확인
 }
 function openLock(k) {
   if (timeUp()) { toast('시간이 끝났어요. 인증서를 받아 보세요!'); sfx.error(); return; }
@@ -462,6 +503,7 @@ function openLock(k) {
 }
 function closeModal() {
   const was = ui.modal;
+  if (was === 'rules' && !Z().rulesOk) return;   // '확인했습니다'를 체크해야 넘어감
   ui.modal = null; ui.solved = null; ui.feedback = '';
   if (was !== 'complete' && was !== 'home' && view === 'day' && isComplete() && !Z().plantName) { openCertModal('complete'); return; }
   render();
@@ -472,7 +514,7 @@ function startGame(g) {
   if (timeUp()) { toast('시간이 끝났어요. 인증서를 받아 보세요!'); sfx.error(); return; }
   if (!done(cfg.unlockBy)) { toast(C.aiLines.lockedGame); sfx.error(); return; }
   ui.modal = null; ui.solved = null; render();
-  const people = [team.leader, ...(team.members || [])].filter(Boolean);
+  const people = [team.leader, ...list(team.members)].filter(Boolean);
   launchGame(g, key => {
     if (timeUp()) return;
     if (!Z().bonus?.[key]) { save({[`day/bonus/${key}`]: SERVER_TIME}); ui.grow = true; sfx.clear(); checkComplete(); }
@@ -505,9 +547,10 @@ async function buildCert() {
   try {
     const canvas = await drawCertificate({
       title: C.certificate.title, tier, complete, photo: photo?.img || null, speed: complete && usedMs() <= C.certificate.speedMinutes * 60000,
-      plantName: o.plantName, tagText: o.tagText, leader: team.leader, members: team.members || [], teamLabel: teamLabel(),
+      plantName: o.plantName, tagText: o.tagText, leader: team.leader, members: list(team.members), teamLabel: teamLabel(),
       stage: locks, bonus: bonusList(), timeText: o.timeText,
-      statsText: `연구 점수 = 미션 ${sc.mission} + 시간 ${sc.time} − 힌트 ${sc.hint} · 장치 ${locks}/3 · 보너스 ${bonus}/3`,
+      scoreText: `연구 점수 ${sc.total}점 = 미션 ${sc.mission} + 시간 ${sc.time} − 힌트 ${sc.hint}`,
+      statsText: `암호 장치 ${locks}/3 · 보너스 게임 ${bonus}/3 · 🍅 토마토 ${Math.min(3, bonus)}개`,
       dateText: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
     });
     ui.cert = {canvas, url: canvas.toDataURL('image/png'), photo: !!photo};
@@ -515,19 +558,14 @@ async function buildCert() {
   ui.certBusy = false;
   if (ui.modal === 'complete' || ui.modal === 'timeup') render();
 }
-async function downloadPot() {
-  const img = await svgToImage(potSvg(potOpts()));
-  const c = document.createElement('canvas'); c.width = 1200; c.height = 1440;
-  c.getContext('2d').drawImage(img, 0, 0, 1200, 1440);
-  downloadCanvas(c, `smartfarm_pot_${team.grade}-${team.classNo}-${team.teamNo}.png`);
-}
 
 function goHome() {
+  session.clear();
   stopTeamWatch?.(); stopTeamWatch = null;
   const t = team;
   ui.modal = null; ui.form = blankForm(); ui.found = t && t.grade ? t : null;
   if (t) Object.assign(ui.form, {grade: t.grade, classNo: t.classNo, teamNo: t.teamNo, leader: t.leader || '', mode: device.mode || 'day',
-    members: Array.from({length: CONFIG.memberMax}, (_, i) => (t.members || [])[i] || '')});
+    members: Array.from({length: CONFIG.memberMax}, (_, i) => list(t.members)[i] || '')});
   team = null; teamId = null; go('home');
 }
 
@@ -565,10 +603,10 @@ function bind() {
     const isMatch = isAdmin
       ? (hash === ADMIN_HASH || (CONFIG.passwords?.admin && val === norm(CONFIG.passwords.admin)))
       : (val === norm(CONFIG.passwords?.[kind]));
-    if (!isMatch) { ui.pwError = '비밀번호가 맞지 않아요. 선생님께 확인하세요.'; sfx.error(); render(); shake(); return; }
+    if (!isMatch) { ui.pwError = '관리코드가 맞지 않아요. 연구 책임자(선생님)께 확인하세요.'; sfx.error(); render(); shake(); return; }
     ui.pwFor = null; sfx.unlock();
     if (kind === 'admin') { openAdmin(); return; }
-    device.unlocked = {...device.unlocked, [kind]: true}; saveDevice(); enterMode(kind);
+    session.set(kind); enterMode(kind);
   });
 
   // 브리핑
@@ -577,6 +615,9 @@ function bind() {
     if (v === 'go') { if (!team.storySeen) save({storySeen: true}); go(device.mode || 'day'); return; }
     ui.slide = Math.max(0, Math.min(C.briefing.length - 1, ui.slide + Number(v))); render();
   });
+  $('[data-rules]')?.addEventListener('click', () => { ui.modal = 'rules'; sfx.tap(); render(); });
+  $('#rules-agree')?.addEventListener('change', e => { const b = $('[data-rules-ok]'); if (b) b.disabled = !e.target.checked; });
+  $('[data-rules-ok]')?.addEventListener('click', () => { if (!$('#rules-agree')?.checked) return; save({'day/rulesOk': true}); ui.modal = null; sfx.unlock(); render(); });
   $('[data-replay]')?.addEventListener('click', () => { ui.slide = 0; ui.modal = null; go('briefing'); });
 
   // 온실 장면
@@ -628,7 +669,6 @@ function bind() {
   $('[data-rename]')?.addEventListener('click', () => { ui.nameDraft = Z().plantName; save({'day/plantName': null}); ui.cert = null; render(); });
   $$('[data-open]').forEach(b => b.onclick = () => openCertModal(b.dataset.open));
   $('[data-dl-cert]')?.addEventListener('click', () => { if (ui.cert) downloadCanvas(ui.cert.canvas, `smartfarm_certificate_${team.grade}-${team.classNo}-${team.teamNo}.png`); });
-  $('[data-dl-pot]')?.addEventListener('click', downloadPot);
 
   // 대시보드
   $$('[data-filter]').forEach(b => b.onclick = () => { ui.adminFilter = b.dataset.filter; render(); });
@@ -662,7 +702,7 @@ document.addEventListener('keydown', e => {
   if (last && ['day', 'night', 'briefing'].includes(device.view)) {
     teamId = makeId(last.grade, last.classNo, last.teamNo);
     team = await getTeam(teamId);
-    if (team && device.unlocked?.[device.mode || 'day']) {
+    if (team && session.ok(device.mode || 'day')) {
       ui.timeUpShown = timeUp();
       startTeamWatch();
       view = device.view === 'briefing' && team.storySeen ? (device.mode || 'day') : device.view;
