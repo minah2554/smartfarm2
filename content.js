@@ -4,7 +4,7 @@ export const CONTENT = {
   title: '스마트팜 바이오 랩',
   aiName: 'FARM-OS',
   // 화면 아래 푸터
-  footer: { version: 'v2.7.0', copyright: '© 2026 minari&ginbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
+  footer: { version: 'v2.8.0', copyright: '© 2026 minari&ginbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
 
   // 연구원 출입증(첫 화면) 문구
   entry: {
@@ -117,12 +117,13 @@ export const CONTENT = {
     },
     color: {
       title: '컬러 터치', icon: '🎨', place: '조명 제어판', unlockBy: 'light',
-      instruction: '15초 동안 계속 바뀌는 칸 중 목표 색만 터치하세요. 목표 색은 도전할 때마다 바뀌어요. 다른 색은 감점! 모드를 고르고 목표 점수를 넘기면 성공이에요.',
+      instruction: '계속 바뀌는 칸 중 목표 색만 터치하세요. 목표 색은 도전할 때마다 바뀌어요. 다른 색은 감점! 쉬운 모드는 10초, 도전 모드는 15초 안에 목표 점수를 넘기면 성공이에요.',
       targets: ['빨강', '파랑', '초록'],   // 도전할 때마다 이 중 하나가 목표 색으로 뽑혀요
-      duration: 15, correctPoints: 20, wrongPoints: -15, changeMs: 650,
+      correctPoints: 20, wrongPoints: -15, changeMs: 650,
+      duration: 15,   // 모드에 duration이 없을 때 쓰는 기본 시간(초)
       modes: [
-        { key: 'easy', label: '🌱 쉬운 모드', goal: 50 },
-        { key: 'hard', label: '🔥 도전 모드', goal: 100 }
+        { key: 'easy', label: '🌱 쉬운 모드', goal: 50, duration: 10 },    // duration: 제한 시간(초)
+        { key: 'hard', label: '🔥 도전 모드', goal: 100, duration: 15 }
       ],
       hallSize: 10            // 명예의 전당에 보여 줄 순위 수 (모드별)
     }
