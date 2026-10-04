@@ -1,7 +1,7 @@
 /* 연구 인증서 이미지 (1080×1440 PNG)
    - 모든 미션 완료 + 사진 있음 : 실제 꽃 화분 사진 + 이름표
    - 그 밖의 경우             : 연구원 이름이 적힌 기념 화분 그림 (키운 단계까지) */
-import {potSvg, svgToImage} from './plant.js';
+import {potSvg, svgToImage, POT_TAG} from './plant.js';
 
 const W = 1080, H = 1440;
 const DISPLAY = "'PyeongChangPeace-Bold','LotteMartDream',sans-serif", BODY = "'LotteMartDream',sans-serif";
@@ -49,9 +49,18 @@ export async function drawCertificate(d) {
     const s = Math.max(iw / d.photo.width, ih / d.photo.height), w = d.photo.width * s, h = d.photo.height * s;
     ctx.drawImage(d.photo, ix + (iw - w) / 2, iy + (ih - h) / 2, w, h);
   } else {
-    const pot = await svgToImage(potSvg({stage: d.stage, bonus: d.bonus, plantName: d.plantName, tagText: d.tagText}));
-    const s = Math.max(iw / 800, ih / 640), w = 800 * s, h = 640 * s;
-    ctx.drawImage(pot, ix + (iw - w) / 2, iy + (ih - h) / 2, w, h);
+    // 그림 속 글씨는 SVG 그림에서 웹 글꼴을 쓸 수 없어서, 이름표 판만 그리고 글씨는 캔버스에 본문 글꼴로 쓴다
+    const pot = await svgToImage(potSvg({stage: d.stage, bonus: d.bonus, plantName: d.plantName, tagText: d.tagText, noTagText: true}));
+    const s = Math.max(iw / 800, ih / 640), w = 800 * s, h = 640 * s, ox = ix + (iw - w) / 2, oy = iy + (ih - h) / 2;
+    ctx.drawImage(pot, ox, oy, w, h);
+    const tag = d.plantName || d.tagText || '';
+    if (tag) {
+      const T = POT_TAG, a = T.angle * Math.PI / 180;
+      ctx.save(); ctx.translate(ox + T.cx * s, oy + T.cy * s); ctx.rotate(a);
+      ctx.fillStyle = '#3B2A1A'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      fit(ctx, tag, T.width * s, 32 * s, BODY, 700); ctx.fillText(tag, (T.x - T.cx) * s, (T.y - T.cy) * s);
+      ctx.restore(); ctx.textBaseline = 'alphabetic';
+    }
   }
   ctx.restore();
 

@@ -13,7 +13,7 @@ function plantParts(n, bonuses) {
   const leafMarkup = leaves.map(([x, y], i) => `<ellipse cx="${160 + x}" cy="${y}" rx="${rx}" ry="11" fill="${i % 2 ? '#51b574' : '#65c989'}" transform="rotate(${x < 0 ? -24 : 24} ${160 + x} ${y})"/>`).join('');
   const flower = n >= 3 ? `<g><circle cx="160" cy="${top - 6}" r="19" fill="#ffe278"/>${[0, 60, 120, 180, 240, 300].map(a => `<ellipse cx="160" cy="${top - 29}" rx="10" ry="17" fill="#ffda77" transform="rotate(${a} 160 ${top - 6})"/>`).join('')}<circle cx="160" cy="${top - 6}" r="10" fill="#f7a746"/></g>` : n === 2 ? `<ellipse cx="160" cy="${top - 5}" rx="12" ry="17" fill="#f5b75c"/>` : '';
   // 토마토: 보너스 성공 개수만큼 (최대 3개)
-  const spots = [[118, top + h * .5], [203, top + h * .4], [182, top + h * .74]];
+  const spots = [[118, top + h * .5], [203, top + h * .4], [140, top + h * .8]];
   const count = n === 0 ? 0 : Math.min(3, bonuses.length);
   const tomatoes = spots.slice(0, count).map(([x, y]) => `<g><circle cx="${x}" cy="${y}" r="16" fill="#ef6254"/><circle cx="${x - 5}" cy="${y - 5}" r="4" fill="#fff" opacity=".45"/><path d="M${x - 6} ${y - 15}l6 6 6-6" stroke="#3f8a4c" stroke-width="4" fill="none" stroke-linecap="round"/></g>`).join('');
   return `<path d="M160 249Q${160 + (n ? 12 : 0)} ${top + 70} 160 ${top}" stroke="#3f9a62" stroke-width="${n ? 10 : 6}" fill="none" stroke-linecap="round"/>${leafMarkup}${flower}${tomatoes}`;
@@ -30,7 +30,7 @@ export function plantSvg(completed, bonuses, name = '', bare = false) {
 export function potSvg(o) {
   const n = Math.min(3, o.stage || 0);
   const tag = o.plantName || o.tagText || '';
-  const tagSize = Math.min(34, Math.floor(140 / (Math.max(1, [...tag].length) * 0.95)));
+  const tagSize = Math.min(32, Math.floor(132 / (Math.max(1, [...tag].length) * 0.95)));
   const font = `font-family="'LotteMartDream',sans-serif" font-weight="700"`;
   const SX = 680, SY = 92;
   const ray = (t, w) => { const r = d => d * Math.PI / 180; return `M${SX} ${SY} L${(SX + Math.cos(r(t)) * 1100).toFixed(0)} ${(SY + Math.sin(r(t)) * 1100).toFixed(0)} L${(SX + Math.cos(r(t + w)) * 1100).toFixed(0)} ${(SY + Math.sin(r(t + w)) * 1100).toFixed(0)}Z`; };
@@ -52,21 +52,24 @@ export function potSvg(o) {
   <ellipse cx="400" cy="606" rx="120" ry="12" fill="#9CC48A" opacity=".55"/>
   <!-- 식물 (크게) -->
   <g transform="translate(120 64) scale(1.75)">${plantParts(n, o.bonus || [])}</g>
+  <!-- 이름표: 화분 흙에 꽂힘 (막대 아래쪽은 화분 테두리 뒤로 들어감) -->
+  ${tag ? `<g transform="rotate(-5 476 505)">
+    <rect x="470" y="452" width="11" height="66" rx="4" fill="#C79A6B"/>
+    <rect x="450" y="404" width="156" height="58" rx="12" fill="#FFF8E1" stroke="#C79A6B" stroke-width="5"/>
+    <circle cx="464" cy="418" r="4" fill="#C79A6B"/>
+    ${o.noTagText ? '' : `<text x="530" y="${433 + tagSize * 0.34}" text-anchor="middle" ${font} font-size="${tagSize}" fill="#3B2A1A">${esc(tag)}</text>`}
+  </g>` : ''}
   <!-- 작은 화분 -->
   <path d="M308 526 H492 L474 604 H326 Z" fill="#C8754A"/>
   <path d="M308 526 H492 L488 544 H312 Z" fill="#A85C36" opacity=".35"/>
   <rect x="294" y="496" width="212" height="36" rx="13" fill="#A85C36"/>
   <ellipse cx="400" cy="502" rx="96" ry="7" fill="#6B3E26"/>
   <path d="M400 584 c-12 0 -19 -9 -19 -19 c10 0 19 7 19 19z M400 584 c12 0 19 -9 19 -19 c-10 0 -19 7 -19 19z" fill="#F4C9A8" opacity=".9"/>
-  <!-- 이름표 -->
-  ${tag ? `<g transform="rotate(-6 600 470)">
-    <rect x="594" y="468" width="11" height="84" rx="4" fill="#C79A6B"/>
-    <rect x="520" y="410" width="166" height="64" rx="13" fill="#FFF8E1" stroke="#C79A6B" stroke-width="5"/>
-    <circle cx="536" cy="426" r="4.5" fill="#C79A6B"/>
-    <text x="603" y="${442 + tagSize * 0.36}" text-anchor="middle" ${font} font-size="${tagSize}" fill="#3B2A1A">${esc(tag)}</text>
-  </g>` : ''}
 </svg>`;
 }
+
+/* 이름표 글씨 위치 (800×640 좌표, 캔버스에서 웹 글꼴로 직접 쓸 때 사용) */
+export const POT_TAG = {cx: 476, cy: 505, x: 530, y: 433, angle: -5, width: 132};
 
 /* SVG 문자열 → Image (캔버스에 그리기용) */
 export function svgToImage(svg) {

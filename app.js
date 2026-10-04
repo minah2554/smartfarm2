@@ -19,11 +19,11 @@ const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } ca
 const norm = (s, cp) => { let v = String(s).trim().replace(/\s+/g, '').toUpperCase(); if (cp) v = v.replace(/0/g, 'O'); return v; };
 const cleanName = s => String(s || '').replace(/\s+/g, ' ').trim().slice(0, CONFIG.nameMaxLength);
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
-const list = v => Array.isArray(v) ? v.filter(Boolean) : v && typeof v === 'object' ? Object.values(v).filter(Boolean) : [];   // Firebase가 배열을 객체로 돌려줄 때 대비
+const toList = v => Array.isArray(v) ? v.filter(Boolean) : v && typeof v === 'object' ? Object.values(v).filter(Boolean) : [];   // Firebase가 배열을 객체로 돌려줄 때 대비
 const makeId = (g, c, t) => `g${g}-c${c}-t${t}`;
 const limitMs = mode => (CONFIG.missionMinutes?.[mode] || 35) * 60000;
 
-export const APP_VERSION = '2.4';
+export const APP_VERSION = '2.5';
 const ADMIN_HASH = 'ad5f52f58ed6ec6e7a641f2416f347674ac5933470079f2a18bc6269b1e80796';
 async function sha256(s) {
   try {
@@ -60,7 +60,7 @@ const opened = k => Z().hints?.[k] || 0;
 const isComplete = () => doneList().length === KEYS.length && bonusList().length === GAME_KEYS.length;
 const remaining = (rec, mode) => { const m = rec?.[mode]; if (!m?.startedAt) return limitMs(mode); return m.startedAt + limitMs(mode) - (m.finishedAt || now()); };
 const timeUp = () => !!Z().startedAt && !Z().finishedAt && remaining(team, 'day') <= 0;
-const usedMs = () => { const z = Z(); if (!z.startedAt) return 0; return Math.min(limitMs('day'), (z.finishedAt || now()) - z.startedAt); };
+const usedMs = () => { const z = Z(); if (!z.startedAt || (z.finishedAt && z.finishedAt <= z.startedAt)) return 0; return Math.min(limitMs('day'), (z.finishedAt || now()) - z.startedAt); };
 const teamLabel = (t = team) => t ? `${t.grade}학년 ${t.classNo}반 ${t.teamNo}모둠` : '';
 /* 연구 점수 = 미션 + 시간 − 힌트 (content.js의 certificate.score) */
 function scoreOf(t) {
@@ -106,7 +106,7 @@ function timerChip(mode) {
   const z = Z(mode);
   if (!z.startedAt) return '';
   const left = remaining(team, mode), fin = !!z.finishedAt;
-  return `<span class="timer ${fin ? 'fin' : left <= 5 * 60000 ? 'hurry' : ''} ${left <= 0 && !fin ? 'over' : ''}" aria-label="남은 시간">${fin ? '✔ 완료' : '⏳'} <b id="clock">${fin ? fmt(z.finishedAt - z.startedAt) : fmt(left)}</b></span>`;
+  return `<span class="timer ${fin ? 'fin' : left <= 5 * 60000 ? 'hurry' : ''} ${left <= 0 && !fin ? 'over' : ''}" aria-label="남은 시간">${fin ? '✔ 완료' : '⏳'} <b id="clock">${fin ? (z.finishedAt - z.startedAt > 0 ? fmt(z.finishedAt - z.startedAt) : '') : fmt(left)}</b></span>`;
 }
 function topbar(mode) {
   const certReady = mode === 'day' && (isComplete() || timeUp());
@@ -239,9 +239,9 @@ function hintPane(k) {
 function potOpts(nameOverride) {
   const n = doneList().length, complete = isComplete();
   return {stage: n, bonus: bonusList(), plantName: complete ? (nameOverride ?? Z().plantName ?? '') : '', tagText: complete ? '이름을 지어 주세요' : `${STAGE[n]} 단계`,
-    timeText: complete ? (Z().startedAt ? `⏱ 미션 완료 ${fmt(usedMs())}` : '⏱ 미션 완료') : `⏱ 시간 종료 · 진행 ${n + bonusList().length}/6`};
+    timeText: complete ? (usedMs() > 0 ? `⏱ 미션 완료 ${fmt(usedMs())}` : '⏱ 미션 완료') : `⏱ 시간 종료 · 진행 ${n + bonusList().length}/6`};
 }
-const crewText = () => [team.leader ? `★ ${team.leader}` : '', ...list(team.members)].filter(Boolean).join('  ');
+const crewText = () => [team.leader ? `★ ${team.leader}` : '', ...toList(team.members)].filter(Boolean).join('  ');
 const potCaption = () => `<p class="pot-crew">${esc(crewText())}</p><p class="pot-time">${esc(potOpts().timeText)}</p>`;
 function certPanel() {
   const ready = ui.cert && !ui.certBusy;
@@ -253,7 +253,7 @@ function completeModal() {
   const named = !!Z().plantName;
   return `<div class="overlay" data-backdrop><section class="modal clear" role="dialog" aria-modal="true" aria-label="낮 구역 완전 복구">
     <div class="sunset" aria-hidden="true"></div>
-    <p class="kicker">DAY CLEAR${Z().startedAt ? ` · ${fmt(usedMs())}` : ''}</p><h2>${esc(named ? `‘${Z().plantName}’이(가) 활짝 피었어요!` : C.completion)}</h2>
+    <p class="kicker">DAY CLEAR${usedMs() > 0 ? ` · ${fmt(usedMs())}` : ''}</p><h2>${esc(named ? `‘${Z().plantName}’이(가) 활짝 피었어요!` : C.completion)}</h2>
     ${named ? `${ui.cert?.photo ? `<p class="photo-note">📸 우리 식물이 실제로 이렇게 꽃을 피웠어요!</p>` : ''}${certPanel()}<button class="text-btn" data-rename>이름 다시 짓기</button>`
       : `<div class="pot-preview" id="pot-preview">${potSvg(potOpts(ui.nameDraft || ''))}</div>${potCaption()}
       <form id="name-form" class="code-form"><input id="plant-name" class="field" maxlength="8" value="${esc(ui.nameDraft || '')}" placeholder="식물 이름 (8글자까지)" aria-label="${esc(C.labels.name)}" required>
@@ -336,7 +336,7 @@ function adminView() {
   const card = t => {
     const ago = Math.max(0, Math.round((now() - (t.updatedAt || 0)) / 1000));
     const where = t.mode === 'night' ? '🌙 밤' : '☀️ 낮';
-    const crew = [t.leader ? `★ ${esc(t.leader)}` : '', ...list(t.members).map(esc)].filter(Boolean).join(' · ');
+    const crew = [t.leader ? `★ ${esc(t.leader)}` : '', ...toList(t.members).map(esc)].filter(Boolean).join(' · ');
     return `<article class="team-card ${t.day?.finishedAt ? 'clear' : ''}">
       <header><h3>${t.teamNo}모둠</h3><span class="mode-tag m-${t.mode === 'night' ? 'night' : 'day'}">${where}</span></header>
       <p class="crew">${crew || '<span class="muted">이름 없음</span>'}</p>
@@ -442,7 +442,7 @@ async function lookupTeam() {
   ui.found = rec && rec.grade ? rec : null;
   if (ui.found && !f.leader.trim() && !f.members.some(m => m.trim())) {
     f.leader = ui.found.leader || '';
-    f.members = Array.from({length: CONFIG.memberMax}, (_, i) => list(ui.found.members)[i] || '');
+    f.members = Array.from({length: CONFIG.memberMax}, (_, i) => toList(ui.found.members)[i] || '');
   }
   render();
 }
@@ -464,12 +464,33 @@ function startTeamWatch() {
   });
 }
 
+/* 관리코드 확인: Vercel 서버(api/verify.js)에 물어본다. 코드는 브라우저에 내려오지 않음.
+   내 컴퓨터(localhost)에서 서버 없이 미리 볼 때만 확인을 건너뜀 */
+async function checkCode(kind, code) {
+  if (kind === 'admin') {
+    const h = await sha256(String(code || '').trim().toLowerCase());
+    if (h === ADMIN_HASH) return 'ok';
+  }
+  const local = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname) || location.protocol === 'file:';
+  try {
+    const r = await fetch(CONFIG.codeCheckURL || '/api/verify', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind, code})});
+    if (r.ok) { const j = await r.json(); return j.ok ? 'ok' : 'wrong'; }
+    if (local) return 'ok';
+    return 'server';
+  } catch { return local ? 'ok' : 'server'; }
+}
+const codeMsg = (res, kind) => res === 'server' ? '관리코드 확인 서버에 연결하지 못했어요. 인터넷 연결을 확인하거나 잠시 뒤 다시 눌러 주세요.'
+  : `${kind === 'admin' ? '대시보드' : kind === 'day' ? '낮 구역' : '밤 구역'} 관리코드가 맞지 않아요. 연구 책임자(선생님)께 확인하세요.`;
+let checking = false;
+
 async function enterTeam() {
   const f = ui.form;
   f.leader = cleanName(f.leader); f.members = f.members.map(cleanName);
   if (!f.leader) { f.error = '대표 연구원(팀장) 이름을 적어 주세요.'; sfx.error(); render(); return; }
   // 관리코드는 처음 화면에서 입장할 때마다 확인 (이 기기에 기억하지 않음)
-  if (norm(f.pw) !== norm(CONFIG.passwords[f.mode])) { f.error = `${f.mode === 'day' ? '낮' : '밤'} 구역 관리코드가 맞지 않아요. 연구 책임자(선생님)께 확인하세요.`; f.pw = ''; sfx.error(); render(); return; }
+  if (checking) return;
+  checking = true; const res = await checkCode(f.mode, f.pw); checking = false;
+  if (res !== 'ok') { f.error = codeMsg(res, f.mode); f.pw = ''; sfx.error(); render(); return; }
   session.set(f.mode);
   teamId = makeId(f.grade, f.classNo, f.teamNo);
   team = (await getTeam(teamId)) || {id: teamId};
@@ -514,7 +535,7 @@ function startGame(g) {
   if (timeUp()) { toast('시간이 끝났어요. 인증서를 받아 보세요!'); sfx.error(); return; }
   if (!done(cfg.unlockBy)) { toast(C.aiLines.lockedGame); sfx.error(); return; }
   ui.modal = null; ui.solved = null; render();
-  const people = [team.leader, ...list(team.members)].filter(Boolean);
+  const people = [team.leader, ...toList(team.members)].filter(Boolean);
   launchGame(g, key => {
     if (timeUp()) return;
     if (!Z().bonus?.[key]) { save({[`day/bonus/${key}`]: SERVER_TIME}); ui.grow = true; sfx.clear(); checkComplete(); }
@@ -547,7 +568,7 @@ async function buildCert() {
   try {
     const canvas = await drawCertificate({
       title: C.certificate.title, tier, complete, photo: photo?.img || null, speed: complete && usedMs() <= C.certificate.speedMinutes * 60000,
-      plantName: o.plantName, tagText: o.tagText, leader: team.leader, members: list(team.members), teamLabel: teamLabel(),
+      plantName: o.plantName, tagText: o.tagText, leader: team.leader, members: toList(team.members), teamLabel: teamLabel(),
       stage: locks, bonus: bonusList(), timeText: o.timeText,
       scoreText: `연구 점수 ${sc.total}점 = 미션 ${sc.mission} + 시간 ${sc.time} − 힌트 ${sc.hint}`,
       statsText: `암호 장치 ${locks}/3 · 보너스 게임 ${bonus}/3 · 🍅 토마토 ${Math.min(3, bonus)}개`,
@@ -565,7 +586,7 @@ function goHome() {
   const t = team;
   ui.modal = null; ui.form = blankForm(); ui.found = t && t.grade ? t : null;
   if (t) Object.assign(ui.form, {grade: t.grade, classNo: t.classNo, teamNo: t.teamNo, leader: t.leader || '', mode: device.mode || 'day',
-    members: Array.from({length: CONFIG.memberMax}, (_, i) => list(t.members)[i] || '')});
+    members: Array.from({length: CONFIG.memberMax}, (_, i) => toList(t.members)[i] || '')});
   team = null; teamId = null; go('home');
 }
 
@@ -595,15 +616,10 @@ function bind() {
   $('[data-go-home]')?.addEventListener('click', goHome);
 
   $('#pw-form')?.addEventListener('submit', async e => {
-    e.preventDefault(); const kind = ui.pwFor;
-    const raw = e.currentTarget.elements.pw.value;
-    const val = norm(raw);
-    const hash = await sha256(raw.trim().toLowerCase());
-    const isAdmin = kind === 'admin';
-    const isMatch = isAdmin
-      ? (hash === ADMIN_HASH || (CONFIG.passwords?.admin && val === norm(CONFIG.passwords.admin)))
-      : (val === norm(CONFIG.passwords?.[kind]));
-    if (!isMatch) { ui.pwError = '관리코드가 맞지 않아요. 연구 책임자(선생님)께 확인하세요.'; sfx.error(); render(); shake(); return; }
+    e.preventDefault(); const kind = ui.pwFor, input = e.currentTarget.elements.pw;
+    if (checking) return;
+    checking = true; const res = await checkCode(kind, input.value); checking = false;
+    if (res !== 'ok') { ui.pwError = codeMsg(res, kind); sfx.error(); render(); shake(); return; }
     ui.pwFor = null; sfx.unlock();
     if (kind === 'admin') { openAdmin(); return; }
     session.set(kind); enterMode(kind);

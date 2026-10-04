@@ -416,3 +416,32 @@ p,li,label,legend{text-wrap:pretty}
 .tier b{font-size:22px}.tier small{color:#A9CFC6;font-weight:400}
 .agree{display:flex;align-items:center;justify-content:center;gap:10px;font-size:20px;font-weight:700;margin:14px 0 10px;background:#ffffff14;border-radius:14px;padding:12px;cursor:pointer}
 .agree input{width:26px;height:26px;accent-color:var(--leaf)}
+
+/* 모바일: 띠·안내 글이 상자 밖으로 나가지 않게 */
+.ticker #ticker{min-width:0;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){
+  .ticker{white-space:normal;border-radius:18px;align-items:flex-start;padding:8px 12px;font-size:14px;line-height:1.45}
+  .ticker .ai{flex:none}
+  .howto{font-size:13px;padding:0 14px}
+  .topbar{gap:8px;padding:10px 12px}
+  .team-badge{font-size:16px;padding:4px 12px}
+  .hud{gap:8px;padding:0 12px 8px}
+  .res{padding:6px 10px;gap:8px}.res b{font-size:14px}.res small{font-size:12px}.res-icon{font-size:22px}
+  .stage-wrap{padding:0 8px}
+  .modal{padding:20px 16px}
+  .modal h2{font-size:24px}
+  .modal .close{top:10px;right:10px}
+  .code-input{min-width:0;width:100%;font-size:24px}
+  .code-form .primary{width:100%}
+  .rule-table th{white-space:normal}
+  .tier{min-width:0;flex:1 1 30%}
+  .site-foot{font-size:12px}
+  .find{font-size:16px;padding:5px 12px}
+  .hall li{grid-template-columns:30px 1fr auto;}
+  .hall .tm{display:none}
+  .stats{font-size:18px}
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .summary div{padding:10px 14px}.summary b{font-size:30px}
+  .team-grid{grid-template-columns:1fr}
+  .zone{grid-template-columns:auto 1fr;}.zone .tl{grid-column:1/-1;text-align:right}
+}
