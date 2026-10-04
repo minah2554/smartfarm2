@@ -1,10 +1,12 @@
-# 🌱 스마트팜 바이오 랩 : 낮과 밤 연구실 — 웹앱 (v2.6.0)
+# 🌱 스마트팜 바이오 랩 : 낮과 밤 연구실 — 웹앱 (v2.7.0)
 
 융합 방탈출 · 과학 × 가정 | 중2 과학 Ⅳ. 식물과 에너지 · 2022 개정 [9과12-01]~[9과12-03]
-© 2026 minari&zinbong
+© 2026 minari&ginbong
 
-현재 범위: **처음 화면(연구원 출입증) + 낮 구역 프롤로그 영상 + 브리핑(낮·밤 공통) + 낮 구역 + 교사용 대시보드**
+현재 범위: **처음 화면(연구원 출입증) + 낮 구역 스토리 영상 + 작전 설명(낮·밤 공통) + 낮 구역 + 교사용 대시보드**
 밤 구역은 '준비 중' 화면만 있어요 (`config.js`의 `nightEnabled`).
+
+**v2.7.0 (2026-10-04)** 상단 메뉴를 '스토리 영상 · 작전 설명 · 점수 안내'로 정리 · 스토리 영상 배경음악 · 컬러 터치 목표 색 무작위 + 15초
 
 **v2.6.0 (2026-10-04)** 낮 구역 프롤로그 영상·자막 7장면 추가 · 브리핑 5장(낮과 밤을 잇는 '당의 여정', 수정된 밤 계획서 반영) · 낮 완료 이야기 문구 · 영상 글씨체 본문과 통일
 
@@ -26,8 +28,9 @@
 | 밤 구역 켜기 | `config.js` | `nightEnabled: false` → `true` |
 | Firebase 주소 · 저장 방식 | `config.js` | `sync.mode` · `sync.firebaseDatabaseURL` |
 | 처음 화면 작은 글씨 · 큰 제목 · 부제목 · 안내문 | `content.js` | `entry.kicker` · `entry.title` · `entry.subtitle` · `entry.lead` |
-| 🎬 낮 구역 프롤로그 영상 자막 (7장면) | `content.js` | `prologue` 의 `tag`(장면 이름) · `text`(자막) — 그림은 `prologue.js` |
-| 브리핑 이야기 (5장) | `content.js` | `briefing` 의 `text` (작전 규칙은 `split.day` / `split.night`) · 당의 여정 칸은 `journey` |
+| 상단 메뉴 버튼 이름 (스토리 영상 · 작전 설명 · 점수 안내) | `content.js` | `menu` |
+| 🎬 낮 구역 스토리 영상 자막 (7장면) | `content.js` | `prologue` 의 `tag`(장면 이름) · `text`(자막) — 그림은 `prologue.js` |
+| 작전 설명(브리핑) 이야기 (5장) | `content.js` | `briefing` 의 `text` (작전 규칙은 `split.day` / `split.night`) · 당의 여정 칸은 `journey` |
 | ✅ **미션 정답** | `content.js` | `missions.water.answer` · `missions.carbon.answer` · `missions.light.checkpoint.answer` · `missions.light.answer` |
 | 정답 입력 안내 · 오답 피드백 | `content.js` | 각 미션의 `prompt` · `placeholder` · `wrong` |
 | 💡 **힌트 내용 (1·2·3단계)** | `hints.js` | `HINTS.water/carbon/light.levels[]` 의 `title` · `lines` · `answer` |
@@ -35,7 +38,7 @@
 | FARM-OS 대사 · 일반 분자 말풍선 | `content.js` | `aiLines` |
 | 보너스: 순간 관찰 | `content.js` | `games.observation` (`frames` 그림 수 · `intervalMs` 속도) |
 | 보너스: 숨은 물건 찾기 | `content.js` | `games.hidden` (`pick` 찾을 개수 · `timeLimit` · `penalty` · `targets` · `decoys`) |
-| 보너스: 컬러 터치 목표 점수 | `content.js` | `games.color.modes` (쉬운 `goal: 50` · 도전 `goal: 100`) |
+| 보너스: 컬러 터치 목표 점수·시간·목표 색 | `content.js` | `games.color.modes` (쉬운 `goal: 50` · 도전 `goal: 100`) · `duration: 15`(초) · `targets`(무작위로 뽑을 목표 색) |
 | 연구 점수 계산 | `content.js` | `certificate.score` (`lock` · `bonus` · `time` · `hint` · `answerHint`) |
 | 연구원 등급 이름 · 기준 점수 | `content.js` | `certificate.tiers` |
 | ⚡ 스피드 도장 기준(분) | `content.js` | `certificate.speedMinutes` |
@@ -67,8 +70,8 @@
 1. **연구원 출입증** (처음 화면): 학년·반·모둠 → 대표 연구원(팀장)·연구원(팀원) 이름 → 낮/밤 토글 → **구역 책임자 관리코드** → 입장
    - 입장하는 순간 **35분 카운트다운** 시작 (낮·밤 따로)
    - 같은 학년·반·모둠으로 다시 입장하면 이름이 자동으로 채워지고 기록·타이머가 이어져요 (다른 기기에서도, Firebase 연결 시)
-2. **🎬 프롤로그 영상** (낮 구역 첫 입장): 06:00 긴급 통신 → 낮 구역 피해 → 작전 개시까지 7장면 + 자막. 처음엔 건너뛰기 없음, 상단 `프롤로그`로 다시 보기(건너뛰기 가능)
-3. **작전 브리핑** (모둠당 처음 한 번): 낮·밤 두 구역 상황 + 우리 모둠 첫 투입 구역. 상단 `브리핑`으로 다시 보기
+2. **🎬 스토리 영상** (낮 구역 첫 입장): 06:00 긴급 통신 → 낮 구역 피해 → 작전 개시까지 7장면 + 자막. 처음엔 건너뛰기 없음, 상단 `스토리 영상`으로 다시 보기(건너뛰기 가능) · 잔잔한 배경음악(🔊로 끄기)
+3. **작전 설명** (모둠당 처음 한 번): 낮·밤 두 구역 상황 + 우리 모둠 첫 투입 구역. 상단 `작전 설명`으로 다시 보기
 4. **연구 인증서 안내 팝업** (낮 구역 첫 입장): 점수 계산·등급·완료 조건. **☑ 확인했습니다**를 체크해야 시작. 상단 `점수 안내`로 다시 보기
 5. **낮 구역 온실**
    - 흙 속 분홍 H₂O / 공기 중 주황 CO₂ / 해 옆 보라 빛 알갱이 → 암호 입력·힌트(1→2→3단계)
@@ -147,7 +150,7 @@
 | `hints.js` | 힌트 1·2·3단계 | ✅ |
 | `api/verify.js` | 🔐 관리코드 (서버 전용) | ✅ |
 | `scene.js` | 온실 장면·분자 위치 | 필요할 때만 |
-| `prologue.js` | 프롤로그 영상 장면 그림 (자막은 `content.js`) | 필요할 때만 |
+| `prologue.js` | 스토리 영상 장면 그림 (자막은 `content.js`) | 필요할 때만 |
 | `photos/` | 꽃 화분 사진 | ✅ |
 | `app.js` · `games.js` · `cert.js` · `plant.js` · `sync.js` · `sound.js` | 앱 동작 | ✖ |
 | `style.css` · `index.html` · `manifest.webmanifest` · `icons/` | 디자인·아이콘 | ✖ |
