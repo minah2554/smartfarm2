@@ -4,6 +4,7 @@ import {HINTS, HINT_RULES} from './hints.js';
 import {plantSvg, potSvg, svgToImage} from './plant.js';
 import {launchGame} from './games.js';
 import {sceneSvg} from './scene.js';
+import {prologueScene} from './prologue.js';
 import {drawCertificate, downloadCanvas, loadPhoto} from './cert.js';
 import {getTeam, patchTeam, applyPatch, fetchTeams, watchTeams, watchTeam, deleteTeam, clearTeams, syncLabel, syncClock, now, SERVER_TIME, addHall, fetchHall, clearHall} from './sync.js';
 import {sfx, isMuted, toggleMute} from './sound.js';
@@ -78,7 +79,7 @@ function checkComplete() {
 
 function go(v) {
   view = v;
-  if (['home', 'day', 'night', 'briefing'].includes(v)) { device.view = v; saveDevice(); }
+  if (['home', 'day', 'night', 'briefing', 'prologue'].includes(v)) { device.view = v; saveDevice(); }
   render();
 }
 
@@ -103,7 +104,7 @@ function topbar(mode) {
   const certReady = mode === 'day' && (isComplete() || timeUp());
   return `<header class="topbar">${homeBtn()}<span class="team-badge">${esc(teamLabel())}</span>${timerChip(mode)}
     ${certReady ? `<button class="cert-btn" data-open="${isComplete() ? 'complete' : 'timeup'}">🏅 인증서</button>` : ''}
-    <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}${mode === 'day' ? '<button class="text-btn" data-rules>점수 안내</button>' : ''}<button class="text-btn" data-replay>브리핑</button></header>`;
+    <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}${mode === 'day' ? '<button class="text-btn" data-prologue>프롤로그</button><button class="text-btn" data-rules>점수 안내</button>' : ''}<button class="text-btn" data-replay>브리핑</button></header>`;
 }
 
 /* ───────── 1. 처음 화면 : 연구원 출입증 ───────── */
@@ -156,7 +157,8 @@ function briefingView() {
     <div class="scan" aria-hidden="true"></div>
     <section class="brief-card">
       <p class="brief-tag"><span class="rec"></span>${esc(s.tag)} · ${ui.slide + 1}/${C.briefing.length}<span class="grow"></span>${timerChip(mode)}</p>
-      ${ui.slide === 0 ? `<h1 class="glitch" data-text="SYSTEM FAILURE">SYSTEM FAILURE</h1>` : ''}
+      ${s.glitch ? `<h1 class="glitch" data-text="SYSTEM FAILURE">SYSTEM FAILURE</h1>` : ''}
+      ${s.journey ? `<ol class="journey" aria-label="당의 여정">${(C.journey || []).map((j, i) => `<li class="j-${j.zone}"><span class="j-icon">${j.icon}</span><b>${esc(j.title)}</b><small>${esc(j.sub)}</small></li>${i < C.journey.length - 1 ? '<li class="j-arrow" aria-hidden="true">➜</li>' : ''}`).join('')}</ol>` : ''}
       ${s.text ? `<p class="brief-text" data-type="${esc(s.text)}"></p>` : ''}
       ${s.formula ? `<div class="formula" aria-label="물 더하기 이산화탄소, 빛 에너지와 엽록체로 포도당 더하기 산소">
         <span class="f water">물<small>H₂O</small></span><b>+</b><span class="f carbon">이산화탄소<small>CO₂</small></span>
@@ -167,6 +169,21 @@ function briefingView() {
       <div class="brief-nav"><div class="dots">${C.briefing.map((_, i) => `<i class="${i === ui.slide ? 'on' : ''}"></i>`).join('')}</div>
         ${ui.slide ? '<button class="ghost" data-brief="-1">이전</button>' : ''}
         <button class="primary" data-brief="${last ? 'go' : '1'}">${last ? (mode === 'day' ? '☀️ 낮 구역 투입!' : '🌙 밤 구역 투입!') : '다음'}</button></div>
+    </section></main>`;
+}
+
+/* ───────── 2-1. 낮 구역 프롤로그 (영상 + 자막) ───────── */
+function prologueView() {
+  const P = C.prologue || [], i = Math.min(ui.pro || 0, P.length - 1), s = P[i], last = i === P.length - 1, replay = !!Z('day').introSeen;
+  return `<main class="prologue">
+    <section class="cine" aria-label="낮 구역 프롤로그">
+      <div class="cine-stage" data-pro-tap>${prologueScene(s.scene)}</div>
+      <div class="cine-top"><span class="rec"></span><span class="ctag">${esc(s.tag)}</span><span class="grow"></span>${timerChip('day')}</div>
+      <div class="cine-sub" data-pro-tap><p class="sub-text" data-type="${esc(s.text)}"></p></div>
+      <div class="cine-bar" aria-hidden="true">${P.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"><b></b></i>`).join('')}</div>
+      <div class="cine-ctl">${i ? '<button class="ghost" data-pro="-1">◀ 이전</button>' : ''}<span class="grow"></span>
+        ${replay && !last ? '<button class="text-btn" data-pro="skip">건너뛰기</button>' : ''}
+        ${last ? `<button class="primary" data-pro="end">${team.storySeen ? '☀️ 낮 구역 입장' : '작전 브리핑 보기 ▶'}</button>` : '<button class="primary" data-pro="1">다음 ▶</button>'}</div>
     </section></main>`;
 }
 
@@ -244,7 +261,7 @@ function completeModal() {
   const named = !!Z().plantName;
   return `<div class="overlay" data-backdrop><section class="modal clear" role="dialog" aria-modal="true" aria-label="낮 구역 완전 복구">
     <div class="sunset" aria-hidden="true"></div>
-    <p class="kicker">DAY CLEAR${usedMs() > 0 ? ` · ${fmt(usedMs())}` : ''}</p><h2>${esc(named ? `‘${Z().plantName}’이(가) 활짝 피었어요!` : C.completion)}</h2>
+    <p class="kicker">DAY CLEAR${usedMs() > 0 ? ` · ${fmt(usedMs())}` : ''}</p><h2>${esc(named ? `‘${Z().plantName}’이(가) 활짝 피었어요!` : C.completion)}</h2>${!named && C.completionStory ? `<p class="clear-story">${esc(C.completionStory)}</p>` : ''}
     ${named ? `${ui.cert?.photo ? `<p class="photo-note">📸 우리 식물이 실제로 이렇게 꽃을 피웠어요!</p>` : ''}${certPanel()}<button class="text-btn" data-rename>이름 다시 짓기</button>`
       : `<div class="pot-preview" id="pot-preview">${potSvg(potOpts(ui.nameDraft || ''))}</div>${potCaption()}
       <form id="name-form" class="code-form"><input id="plant-name" class="field" maxlength="8" value="${esc(ui.nameDraft || '')}" placeholder="식물 이름 (8글자까지)" aria-label="${esc(C.labels.name)}" required>
@@ -358,12 +375,14 @@ function adminView() {
 
 /* ───────── 렌더 ───────── */
 function render() {
+  if (view !== 'prologue') { clearInterval(proType); clearTimeout(proNext); }
   if (view !== 'admin' && stopWatch) { stopWatch(); stopWatch = null; }
   document.body.dataset.view = view;
   if (team && isComplete() && !Z().finishedAt) checkComplete();   // 다른 기기에서 마지막 미션을 끝낸 경우
   let html = '';
   if (view === 'home') html = homeView();
   else if (view === 'briefing') html = briefingView();
+  else if (view === 'prologue') html = prologueView();
   else if (view === 'day') {
     if (!Z().rulesOk && !ui.modal && !timeUp()) ui.modal = 'rules';   // 낮 구역 첫 입장 → 인증서 안내
     html = dayView();
@@ -379,6 +398,7 @@ function render() {
   ui.grow = false;
   bind();
   if (view === 'briefing') typeText();
+  if (view === 'prologue') playPrologue();
   if (view === 'day' && !ui.modal) startTicker();
   const focus = app.querySelector('.modal .code-input'); if (focus && !ui.solved) focus.focus();
 }
@@ -389,8 +409,8 @@ function tick() {
     app.querySelectorAll('[data-tl]').forEach(el => { const t = teamsCache[el.dataset.tl]; if (t) el.textContent = statusText(t, el.dataset.mode); });
     return;
   }
-  if (!team || !['day', 'night', 'briefing'].includes(view)) return;
-  const mode = view === 'briefing' ? (device.mode || 'day') : view;
+  if (!team || !['day', 'night', 'briefing', 'prologue'].includes(view)) return;
+  const mode = view === 'briefing' ? (device.mode || 'day') : view === 'prologue' ? 'day' : view;
   const el = document.getElementById('clock'), z = Z(mode);
   if (el && z.startedAt && !z.finishedAt) {
     const left = remaining(team, mode); el.textContent = fmt(left);
@@ -411,6 +431,32 @@ function typeText() {
   const full = el.dataset.type; let i = 0;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = full; return; }
   typeTimer = setInterval(() => { i += 2; el.textContent = full.slice(0, i); if (i % 6 === 0) sfx.type(); if (i >= full.length) { el.textContent = full; clearInterval(typeTimer); } }, 28);
+}
+/* 프롤로그: 자막을 한 글자씩 → 다 나오면 잠시 뒤 다음 장면 (마지막 장면은 버튼을 눌러야 넘어감) */
+let proType = null, proNext = null;
+function playPrologue() {
+  clearInterval(proType); clearTimeout(proNext);
+  const el = app.querySelector('.sub-text'); if (!el) return;
+  const full = el.dataset.type, last = (ui.pro || 0) >= (C.prologue || []).length - 1; let i = 0;
+  const finish = () => {
+    clearInterval(proType); proType = null; el.textContent = full; el.classList.add('done');
+    const bar = app.querySelector('.cine-bar .on b'); const hold = Math.min(7000, 2600 + full.length * 45);
+    if (bar) { bar.style.animationDuration = hold + 'ms'; bar.classList.add('run'); }
+    if (!last) proNext = setTimeout(() => stepPrologue(1), hold);
+  };
+  ui.proFinish = finish;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
+  proType = setInterval(() => { i += 1; el.textContent = full.slice(0, i); if (i % 5 === 0) sfx.type(); if (i >= full.length) finish(); }, 42);
+}
+function stepPrologue(d) {
+  clearInterval(proType); clearTimeout(proNext);
+  const P = C.prologue || [];
+  ui.pro = Math.max(0, Math.min(P.length - 1, (ui.pro || 0) + d)); render();
+}
+function endPrologue() {
+  clearInterval(proType); clearTimeout(proNext);
+  if (!Z('day').introSeen) save({'day/introSeen': true});
+  if (!team.storySeen) { ui.slide = 0; go('briefing'); } else go('day');
 }
 let tickTimer = null, tickIdx = 0;
 function startTicker() {
@@ -448,14 +494,14 @@ function startTeamWatch() {
     if (!team) return;
     const rec = await getTeam(teamId);
     if (!rec) {   // 선생님이 대시보드에서 이 모둠 기록을 지운 경우 → 처음 화면으로
-      if (['day', 'night', 'briefing'].includes(view)) { goHome(); ui.found = null; ui.form.error = '선생님이 이 모둠 기록을 초기화했어요. 출입증을 다시 확인하고 입장하세요.'; render(); }
+      if (['day', 'night', 'briefing', 'prologue'].includes(view)) { goHome(); ui.found = null; ui.form.error = '선생님이 이 모둠 기록을 초기화했어요. 출입증을 다시 확인하고 입장하세요.'; render(); }
       return;
     }
     const sig = r => JSON.stringify([r.day, r.night, r.leader, r.members, r.storySeen]);
     if (sig(rec) === sig(team)) { team = rec; return; }
     team = rec;
     const typing = document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName) && app.contains(document.activeElement);
-    if (!typing && !document.querySelector('.game-layer') && view !== 'briefing') render();
+    if (!typing && !document.querySelector('.game-layer') && view !== 'briefing' && view !== 'prologue') render();
   });
 }
 
@@ -501,6 +547,7 @@ function enterMode(mode) {
   if ((mode === 'day' || CONFIG.nightEnabled) && !Z(mode).startedAt) patch[`${mode}/startedAt`] = SERVER_TIME;
   save(patch);
   ui.modal = null;
+  if (mode === 'day' && !Z('day').introSeen && !team.storySeen) { ui.pro = 0; go('prologue'); return; }   // 낮 구역 첫 입장 → 프롤로그 영상
   if (!team.storySeen) { ui.slide = 0; go('briefing'); } else go(mode);
 }
 function pickModeInGame(kind) {
@@ -625,6 +672,9 @@ function bind() {
   $('[data-rules]')?.addEventListener('click', () => { ui.modal = 'rules'; sfx.tap(); render(); });
   $('#rules-agree')?.addEventListener('change', e => { const b = $('[data-rules-ok]'); if (b) b.disabled = !e.target.checked; });
   $('[data-rules-ok]')?.addEventListener('click', () => { if (!$('#rules-agree')?.checked) return; save({'day/rulesOk': true}); ui.modal = null; sfx.unlock(); render(); });
+  $$('[data-pro]').forEach(b => b.onclick = () => { const v = b.dataset.pro; sfx.tap(); if (v === 'end' || v === 'skip') endPrologue(); else stepPrologue(Number(v)); });
+  $$('[data-pro-tap]').forEach(el => el.onclick = () => { if (proType) ui.proFinish?.(); else if ((ui.pro || 0) < (C.prologue || []).length - 1) stepPrologue(1); });
+  $('[data-prologue]')?.addEventListener('click', () => { ui.pro = 0; ui.modal = null; go('prologue'); });
   $('[data-replay]')?.addEventListener('click', () => { ui.slide = 0; ui.modal = null; go('briefing'); });
 
   // 온실 장면
@@ -706,7 +756,7 @@ document.addEventListener('keydown', e => {
 (async function boot() {
   syncClock();
   const last = device.last;
-  if (last && ['day', 'night', 'briefing'].includes(device.view)) {
+  if (last && ['day', 'night', 'briefing', 'prologue'].includes(device.view)) {
     teamId = makeId(last.grade, last.classNo, last.teamNo);
     team = await getTeam(teamId);
     if (team && session.ok(device.mode || 'day')) {
