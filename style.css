@@ -445,3 +445,85 @@ p,li,label,legend{text-wrap:pretty}
   .team-grid{grid-template-columns:1fr}
   .zone{grid-template-columns:auto 1fr;}.zone .tl{grid-column:1/-1;text-align:right}
 }
+
+/* ☀️ 낮 구역 프롤로그 (영상 + 자막) */
+.prologue{min-height:100vh;background:#05100F;display:grid;place-items:center;padding:12px}
+.cine{position:relative;width:min(100%,calc((100vh - 24px) * 16 / 9));aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 30px 80px #000a}
+.cine-stage{position:absolute;inset:0;cursor:pointer}
+.pro-svg{width:100%;height:100%;display:block;font-family:var(--body);font-weight:700}
+.cine-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;padding:14px 18px;background:linear-gradient(#000a,#0000);color:#fff;font-weight:700;pointer-events:none}
+.cine-top .ctag{background:#FF5A4E;border-radius:999px;padding:3px 14px;font-size:15px}
+.cine-top .timer{pointer-events:auto}
+.cine-sub{position:absolute;left:0;right:0;bottom:62px;padding:40px 6% 14px;background:linear-gradient(#0000,#000c 45%);cursor:pointer}
+.sub-text{margin:0 auto;max-width:34em;text-align:center;color:#fff;font-weight:700;font-size:clamp(17px,2.4vw,28px);line-height:1.55;white-space:pre-line;text-shadow:0 2px 6px #000;min-height:3.1em;text-wrap:balance}
+.cine-bar{position:absolute;left:18px;right:18px;bottom:50px;display:flex;gap:6px}
+.cine-bar i{flex:1;height:4px;border-radius:2px;background:#ffffff33;overflow:hidden}
+.cine-bar i.done b{display:block;height:100%;background:#FFD23F}
+.cine-bar i.on b{display:block;height:100%;width:0;background:#FFD23F}
+.cine-bar i.on b.run{animation:barfill linear forwards}
+@keyframes barfill{to{width:100%}}
+.cine-ctl{position:absolute;left:0;right:0;bottom:0;height:50px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#000c}
+.cine-ctl .primary{padding:8px 20px}.cine-ctl .ghost{padding:6px 14px;border-color:#ffffff55}
+.cine-ctl .text-btn{color:#ccc}
+/* 장면 움직임 (한 번만 재생) */
+.pro-sunrise,.pro-sunset,.pro-card,.pro-zoom,.pro-shake,.pro-in{transform-box:fill-box;transform-origin:center}
+.pro-clock{font-family:var(--body);font-weight:700;font-size:150px;fill:#fff;opacity:0;animation:fadein 1.2s .4s forwards}
+.pro-label{font-family:var(--body);font-size:34px;font-weight:700}
+.pro-small{font-family:var(--body);font-size:26px;fill:#A9CFC6}
+.pro-mono{font-family:var(--body);font-size:32px;font-weight:700}
+.pro-big{font-family:var(--body);font-weight:700;font-size:80px}
+.pro-fadeout{animation:fadeout 3s .3s forwards}
+.pro-sunrise{transform:translateY(260px);animation:sunrise 3.6s .3s cubic-bezier(.2,.7,.3,1) forwards}
+.pro-sunset{animation:sunset 9s linear forwards}
+.pro-line,.pro-card,.pro-in{opacity:0;animation:fadeup .7s forwards}
+.pro-card{transform:translateY(30px)}
+.pro-twin{animation:fadein 1s forwards}
+.pro-blink{animation:blink .8s steps(2) infinite}
+.pro-ray{opacity:0;animation:fadein 1.4s forwards}
+.pro-zoom{transform:scale(.82);animation:zoomin 3s cubic-bezier(.2,.7,.3,1) forwards}
+.pro-pulse{animation:pulse 1.6s ease-in-out infinite}
+.pro-flash{opacity:0;animation:flash 1.6s .2s 2}
+.pro-shake{animation:shake2 .5s .3s 4}
+.pro-scan{animation:scan 2.4s linear infinite}
+.pro-dim{opacity:.5}
+.pro-flow{animation:flow 2.4s linear infinite}
+@keyframes fadein{to{opacity:1}}
+@keyframes fadeout{to{opacity:0}}
+@keyframes sunrise{to{transform:translateY(-120px)}}
+@keyframes sunset{to{transform:translateY(160px)}}
+@keyframes fadeup{to{opacity:1;transform:none}}
+@keyframes zoomin{to{transform:scale(1)}}
+@keyframes pulse{50%{opacity:.55}}
+@keyframes flash{30%{opacity:.35}}
+@keyframes shake2{25%{transform:translate(-14px,4px) skewX(-3deg)}50%{transform:translate(10px,-6px)}75%{transform:translate(-6px,2px) skewX(2deg)}}
+@keyframes scan{to{transform:translateY(130px)}}
+@keyframes flow{to{transform:translateX(380px)}}
+@media (max-width:640px){
+  .prologue{padding:0;align-content:center}
+  .cine{border-radius:0;width:100%}
+  .cine-top{padding:8px 10px;font-size:13px}.cine-top .ctag{font-size:12px}
+  .cine-sub{bottom:56px;padding:24px 4% 8px}
+  .sub-text{font-size:14px;min-height:4.6em}
+  .cine-bar{bottom:46px}
+  .cine-ctl{height:46px}
+}
+@media (max-width:640px) and (orientation:portrait){
+  .cine{aspect-ratio:auto;height:100vh;height:100dvh;display:flex;flex-direction:column;justify-content:center;padding-top:48px}
+  .cine-stage{position:relative;inset:auto;aspect-ratio:16/9;flex:none;margin-top:auto}
+  .cine-sub{position:relative;bottom:auto;background:none;padding:18px 16px 0;margin-bottom:auto}
+  .cine-top{background:#05100F}
+  .sub-text{font-size:17px}
+  .cine-bar{position:relative;left:auto;right:auto;bottom:auto;margin:0 14px 10px}
+  .cine-ctl{position:relative}
+}
+
+/* 브리핑: 당의 여정 */
+.journey{list-style:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:0;margin:4px 0 16px}
+.journey li:not(.j-arrow){display:grid;justify-items:center;gap:2px;min-width:110px;padding:10px 12px;border-radius:16px;text-align:center}
+.journey .j-day{background:#FFD23F22;border:2px solid #FFD23F99}
+.journey .j-night{background:#9AA7FF22;border:2px solid #9AA7FF99}
+.journey .j-icon{font-size:32px;line-height:1}
+.journey b{font-size:17px}.journey small{color:#CDE9E1;font-size:13px}
+.journey .j-arrow{color:#FFD23F;font-size:22px}
+.clear-story{max-width:30em;margin:6px auto 4px;line-height:1.65;color:#fff;font-weight:700}
+@media (max-width:640px){.journey li:not(.j-arrow){min-width:0;flex:1 1 40%}.journey .j-arrow{display:none}}
