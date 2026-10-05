@@ -233,7 +233,7 @@ export function nightSceneSvg(st, games, opts = {}) {
   <rect x="352" y="${bedTop}" width="896" height="58" rx="8" fill="url(#nbed)" stroke="#3E2814" stroke-width="3"/>
   <rect x="352" y="${bedTop}" width="896" height="10" rx="5" fill="#A87444"/>
   ${[560, 800, 1040].map(x => `<line x1="${x}" y1="${bedTop + 10}" x2="${x}" y2="${bedTop + 58}" stroke="#4A2F18" stroke-width="3" opacity=".6"/>`).join('')}
-  ${opts.bare ? '' : `<g transform="translate(800 ${bedTop + 36})"><rect x="-92" y="-15" width="184" height="28" rx="8" fill="#14163A" stroke="#9AA7FF" stroke-width="2"/><text y="5" text-anchor="middle" font-size="15" font-weight="700" fill="#E6E8FF">🍓 딸기 · 🍅 토마토 재배 베드</text></g>`}
+  ${opts.bare ? '' : `<g transform="translate(800 ${bedTop + 36})"><rect x="-120" y="-16" width="240" height="30" rx="9" fill="#14163A" stroke="#9AA7FF" stroke-width="2"/><text y="5" text-anchor="middle" font-size="15" font-weight="700" fill="#E6E8FF">딸기 · 토마토 재배 베드</text></g>`}
 
   <!-- 체관 배송관: 잎에서 만든 당이 뿌리 저장고(감자)로 -->
   <path d="M330 812 Q800 784 1270 812" fill="none" stroke="url(#npipe)" stroke-width="64" stroke-linecap="round"/>

@@ -39,8 +39,9 @@ const hintsOf = n => Z().hints?.[key(n)] || 0;
 const totalHints = () => KEYS.reduce((a, k) => a + (Z().hints?.[k] || 0), 0);
 const wrongs = () => Z().wrongs || 0;
 const left = () => { const z = Z(), lim = (A.CONFIG.missionMinutes?.night || 35) * 60000; if (!z.startedAt) return lim; return z.startedAt + lim - (z.finishedAt || A.now()); };
-function names() { const t = T(), m = A.toList(t?.members); return {leader: t?.leader || '', nutri: m[0] || '', inspect: m[1] || '', oper: m[2] || '', rec: m[3] || ''}; }
-function holderName(n) { const nm = names(); let k = N.tablet[key(n)]; if (!nm[k]) k = 'leader'; const r = N.roles.find(x => x.k === k); return r.n + (nm[k] ? ' ' + nm[k] : ''); }
+// 모둠 입장 때 적은 이름 (모둠장 → 연구원 순서). 태블릿은 LOCK마다 이 순서대로 돌아가며 잡아요.
+const people = () => { const t = T(); return [t?.leader, ...A.toList(t?.members)].map(x => String(x || '').trim()).filter(Boolean); };
+function holderName(n) { const p = people(); return p.length ? p[(n - 1) % p.length] : '모둠장'; }
 function freshMem() { Object.assign(mem, {team: T()?.id, s1: {}, s2f: [], g3: {a: null, b: null}, s4: [], pledges: [], spell: []}); sel1 = null; }
 
 /* ── 바깥(index.js)에서 쓰는 함수 ── */
@@ -181,9 +182,8 @@ function clearStage() {
   overlay(`<div class="eyebrow">LOCK ${st + 3} RESTORED</div><p>재가동 명령어 조각을 확보했습니다.</p><div class="big-frag">${esc(f)}</div>` +
     `<p class="mono" style="color:var(--amber)">LOCK ${st + 3} 조각</p>` +
     `<p class="dim" style="font-size:14px">연구원 수첩 1쪽 '명령어 조각 수집판'의 LOCK ${st + 3} 칸에 적어 두세요. 조각의 순서는 마지막에 직접 알아내야 해요.</p>` +
-    (nx ? `<div class="hint-box" style="text-align:center"><b>태블릿을 넘기세요</b><br>다음 LOCK ${nx + 3} 담당: <b>${esc(holderName(nx))}</b></div>` : '') +
-    `<div class="nrow" style="justify-content:center"><button class="btn nghost" id="ovMap">밤의 온실로</button>${nx ? `<button class="btn" id="ovOk">태블릿을 넘겼어요 · LOCK ${nx + 3}으로</button>` : ''}</div>`,
-  () => { cur = nx; render(); });
+    (nx ? `<div class="hint-box" style="text-align:center"><b>태블릿을 넘기세요</b><br>다음 LOCK ${nx + 3} 담당: <b>${esc(holderName(nx))}</b><br><small>밤의 온실에서 색이 다른 신호를 찾아 LOCK ${nx + 3}을 여세요</small></div>` : '') +
+    `<button class="btn" id="ovMap" style="justify-self:center">${nx ? '태블릿을 넘겼어요 · 밤의 온실로' : '밤의 온실로'}</button>`);
 }
 function bindHint() {
   const b = q('#hintBtn'); if (!b) return;
@@ -445,7 +445,7 @@ function termHTML() {
 }
 function renderS5() {
   const m = M.plan, cp = m.checkpoint;
-  if (!mem.pledges.length) { const nm = names(); mem.pledges = N.roles.map(r => ({who: nm[r.k] || '', when: '', what: '', much: ''})).filter((p, i) => p.who || i < cp.min); }
+  if (!mem.pledges.length) { const p = people(); mem.pledges = Array.from({length: Math.max(cp.min, Math.min(cp.max, p.length))}, (_, i) => ({who: p[i] || '', when: '', what: '', much: ''})); }
   const rows = mem.pledges.map((p, i) => `<div class="pledge" data-i="${i}">` +
     `<input class="input who" placeholder="이름" value="${esc(p.who)}" data-k="who" aria-label="이름" maxlength="10">` +
     `<input class="input" placeholder="${esc(cp.placeholders.when)}" value="${esc(p.when)}" data-k="when" aria-label="언제">` +
@@ -567,12 +567,11 @@ function warmSfx() {
   };
 }
 function renderWarmth() {
-  const G = N.games.warmth, nm = names();
-  const people = N.roles.map(r => nm[r.k]).filter(Boolean);
-  const NN = Math.max(G.minPads, Math.min(G.maxPads, people.length || 3)); while (people.length < NN) people.push('연구원 ' + (people.length + 1));
+  const G = N.games.warmth, ppl = people();
+  const NN = Math.max(G.minPads, Math.min(G.maxPads, ppl.length || 3)); while (ppl.length < NN) ppl.push('연구원 ' + (ppl.length + 1));
   let pads = ''; for (let i = 0; i < NN; i++) { const ang = -90 + i * 360 / NN, rad = ang * Math.PI / 180, x = 50 + 37 * Math.cos(rad), y = 48 + 37 * Math.sin(rad);
     pads += `<div class="wpad" data-i="${i}" style="left:${x.toFixed(2)}%;top:${y.toFixed(2)}%"><div class="wring"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="wr-bg" cx="50" cy="50" r="44"/><circle class="wr-fg" cx="50" cy="50" r="44"/>` +
-      `<path d="M50 24c-12 0-20 9-20 21v10M50 32c-7 0-12 5-12 13v14M50 40c-3 0-5 2-5 5v20M50 32c7 0 12 5 12 13v8M50 24c12 0 20 9 20 21v4M55 45v12c0 6-2 10-5 14" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg></div><span>${esc(people[i])}</span></div>`; }
+      `<path d="M50 24c-12 0-20 9-20 21v10M50 32c-7 0-12 5-12 13v14M50 40c-3 0-5 2-5 5v20M50 32c7 0 12 5 12 13v8M50 24c12 0 20 9 20 21v4M55 45v12c0 6-2 10-5 14" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg></div><span>${esc(ppl[i])}</span></div>`; }
   const subTxt = seq => seq ? `한 명씩 자기 패드를 <b>${G.seqSec}초</b> 동안 눌러 온기를 채우세요. 다 채우면 코어가 점화됩니다.` : `연구원 ${NN}명이 <b>동시에</b> 손가락을 패드에 올리고 <b>${G.holdSec}초</b> 동안 떼지 마세요.`;
   phase = 'warmth';
   h('<div class="warm-night" id="wNight"></div><div class="warm-day" id="wDay"><div class="warm-sun"></div></div>' +

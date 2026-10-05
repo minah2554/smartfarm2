@@ -34,15 +34,7 @@ export const NIGHT = {
 
   labels: { download: '🏅 인증서 저장' },
 
-  // 역할 (모둠 입장 때 적은 이름 순서: 모둠장 → 연구원 1·2·3·4) · LOCK마다 태블릿을 잡는 사람
-  roles: [
-    { k: 'leader',  n: '팀장',   d: '진행·타임키핑, 힌트 사용 결정' },
-    { k: 'nutri',   n: '영양사', d: '영양소 분석·열량과 당류 계산' },
-    { k: 'inspect', n: '검사원', d: '제출 전 풀이 검증(승인 체크)' },
-    { k: 'oper',    n: '중계관', d: '선생님 호출·명령어 조각 수집판 관리' },
-    { k: 'rec',     n: '기록원', d: '연구원 수첩에 모둠 답 정리' }
-  ],
-  tablet: { cargo: 'oper', energy: 'leader', twin: 'rec', protocol: 'nutri', plan: 'inspect' },
+  // 태블릿 담당: 모둠 입장 때 적은 이름(모둠장 → 연구원 1·2·3·4) 순서대로 LOCK마다 돌아가요
   inspector: '검사원 확인: 모든 모둠원의 연구원 수첩에 풀이가 적혀 있고, 모두 이 코드에 동의합니다.',
   inspectorMissing: '검사원 승인 체크가 없으면 코드 락이 반응하지 않아요. (2중 승인 락)',
 

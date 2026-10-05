@@ -69,6 +69,48 @@ const FLO = (alert = true) => { const glow = alert ? '#FF8FC2' : '#8BD450', scre
     : `<path d="M48 76 Q57 66 66 76" stroke="${glow}" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M84 76 Q93 66 102 76" stroke="${glow}" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M56 96 Q75 112 94 96" stroke="${glow}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
   return `<svg class="flo" viewBox="0 0 150 150" aria-hidden="true"><ellipse cx="75" cy="140" rx="40" ry="5" fill="${glow}" opacity=".25"/><path d="M75 30 C75 16 86 8 100 10 C98 24 88 30 75 30 Z" fill="#8BD450"/><line x1="75" y1="30" x2="75" y2="40" stroke="#8BD450" stroke-width="4"/><rect x="24" y="40" width="102" height="86" rx="24" fill="#E9ECFF" stroke="#9AA7FF" stroke-width="3"/><rect x="36" y="52" width="78" height="62" rx="14" fill="${screen}"/>${eyes}<rect x="44" y="126" width="8" height="10" rx="3" fill="#9AA7FF"/><rect x="98" y="126" width="8" height="10" rx="3" fill="#9AA7FF"/><circle cx="118" cy="46" r="6" fill="${alert ? '#FF5A4E' : '#8BD450'}"/></svg>`; };
 
+/* 🎬 마지막 장면(작전 개시) 애니메이션: 경보등 → LOCK 4~8 오류 패널이 하나씩 → 22:00→06:00 카운트다운 → 명령어 조각 5칸 */
+function missionArt() {
+  const M = KEYS.map(k => N.missions[k]), R = '#FF5A6E', G = '#8BD450', L = '#9AA7FF';
+  const panels = M.map((m, i) => { const y = 50 + i * 86, b = (0.6 + i * 0.45).toFixed(2);
+    return `<g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="${b}s" dur=".35s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate" from="60 0" to="0 0" begin="${b}s" dur=".45s" fill="freeze"/>
+      <rect x="930" y="${y}" width="560" height="74" rx="14" fill="#14163A" stroke="${R}" stroke-width="3"><animate attributeName="stroke-opacity" values="1;.35;1" dur="1s" begin="${b}s" repeatCount="indefinite"/></rect>
+      <text x="965" y="${y + 47}" font-size="34">${m.icon}</text>
+      <text x="1020" y="${y + 33}" font-size="18" font-weight="700" fill="${L}" font-family="monospace" letter-spacing="2">${m.lock} · ${m.time}</text>
+      <text x="1020" y="${y + 60}" font-size="24" font-weight="700" fill="#E6E8FF">${esc(m.title)}</text>
+      <rect x="1370" y="${y + 22}" width="98" height="30" rx="15" fill="${R}"><animate attributeName="opacity" values="1;.3;1" dur=".8s" begin="${b}s" repeatCount="indefinite"/></rect>
+      <text x="1419" y="${y + 43}" text-anchor="middle" font-size="16" font-weight="900" fill="#fff" font-family="monospace">ERROR</text></g>`; }).join('');
+  const slots = [0, 1, 2, 3, 4].map(i => { const x = 150 + i * 120, b = (3.1 + i * 0.18).toFixed(2);
+    return `<g opacity="0"><animate attributeName="opacity" from="0" to="1" begin="${b}s" dur=".3s" fill="freeze"/>
+      <rect x="${x}" y="345" width="96" height="92" rx="18" fill="#FFE9A810" stroke="#FFE9A8" stroke-width="3" stroke-dasharray="10 7"><animate attributeName="stroke-dashoffset" from="0" to="34" dur="1.2s" repeatCount="indefinite"/></rect>
+      <text x="${x + 48}" y="409" text-anchor="middle" font-size="50" font-weight="900" fill="#FFE9A8"><animate attributeName="opacity" values=".35;1;.35" dur="1.6s" begin="${(i * 0.2).toFixed(1)}s" repeatCount="indefinite"/>?</text>
+      <text x="${x + 48}" y="366" text-anchor="middle" font-size="14" fill="${L}" font-family="monospace">L${i + 4}</text></g>`; }).join('');
+  const stars = [[80, 60], [260, 40], [420, 90], [700, 30], [860, 70], [1540, 50], [1180, 40], [40, 300], [1570, 420]].map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i % 3 ? 2 : 3}" fill="#fff"><animate attributeName="opacity" values=".2;1;.2" dur="${2 + i % 3}s" repeatCount="indefinite"/></circle>`).join('');
+  return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true" font-family="'LotteMartDream',sans-serif">
+    <defs><radialGradient id="msBg" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#3B3F8F"/><stop offset="1" stop-color="#070918"/></radialGradient>
+      <radialGradient id="msSiren"><stop offset="0" stop-color="${R}" stop-opacity=".55"/><stop offset="1" stop-color="${R}" stop-opacity="0"/></radialGradient></defs>
+    <rect width="1600" height="900" fill="url(#msBg)"/>
+    <g stroke="#9AA7FF" stroke-opacity=".07">${Array.from({length: 21}, (_, i) => `<line x1="${i * 80}" y1="0" x2="${i * 80}" y2="900"/>`).join('')}${Array.from({length: 12}, (_, i) => `<line x1="0" y1="${i * 80}" x2="1600" y2="${i * 80}"/>`).join('')}</g>
+    ${stars}
+    <circle cx="430" cy="150" r="220" fill="url(#msSiren)"><animate attributeName="r" values="170;250;170" dur="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;.4;1" dur="1.2s" repeatCount="indefinite"/></circle>
+    <g transform="translate(330 20) scale(1.35)"><g><animateTransform attributeName="transform" type="translate" values="0 0;0 -6;0 0" dur="2.4s" repeatCount="indefinite"/>${FLO(true).replace('<svg class="flo" viewBox="0 0 150 150" aria-hidden="true">', '').replace('</svg>', '')}</g></g>
+    <text x="430" y="250" text-anchor="middle" font-size="24" font-weight="900" fill="#FF8FC2" letter-spacing="6">NIGHT MISSION</text>
+    <g><text x="150" y="320" font-size="20" fill="${L}" font-family="monospace" letter-spacing="2">재가동 명령어 조각 0 / 5</text></g>
+    ${slots}
+    ${panels}
+    <g transform="translate(150 470)">
+      <text x="0" y="0" font-size="20" fill="${L}" font-family="monospace" letter-spacing="2">LAB TIME</text>
+      <text x="0" y="50" font-size="44" font-weight="900" fill="#FFE9A8" font-family="monospace">22:00</text>
+      <text x="560" y="50" text-anchor="end" font-size="44" font-weight="900" fill="${G}" font-family="monospace">06:00</text>
+      <text x="280" y="44" text-anchor="middle" font-size="22" fill="#E6E8FF">→ 해가 뜨기 전에 재가동!</text>
+      <rect x="0" y="72" width="560" height="14" rx="7" fill="#ffffff1a"/>
+      <rect x="0" y="72" width="0" height="14" rx="7" fill="#FFD23F"><animate attributeName="width" from="0" to="560" begin="3.4s" dur="6s" fill="freeze"/></rect>
+    </g>
+    <rect x="0" y="0" width="1600" height="6" fill="#9AA7FF" opacity=".25"><animate attributeName="y" values="0;900" dur="3.5s" repeatCount="indefinite"/></rect>
+  </svg>`;
+}
+
 export function view(api) {
   A = api;
   if (T()?.id !== nui.teamId) Object.assign(nui, {teamId: T()?.id, screen: null, pro: 0, modal: null, timeUpShown: false, cert: null});   // 다른 모둠으로 입장하면 화면 상태를 비움
@@ -106,7 +148,7 @@ function modalView() {
 function prologueView() {
   const P = N.prologue, i = Math.min(nui.pro, P.length - 1), s = P[i], last = i === P.length - 1, replay = !!Z().introSeen, muted = A.isMuted();
   const media = s.video ? `<video class="pro-video" playsinline autoplay preload="auto" ${muted ? 'muted' : ''} data-nvideo><source src="${N.assets}${esc(s.video)}.mp4" type="video/mp4"><source src="${N.assets}${esc(s.video)}.webm" type="video/webm"></video>` : '';
-  const art = `<div class="pro-art ${s.video ? 'fallback' : ''}" ${s.video ? 'hidden' : ''}>${FLO(true)}<p>NIGHT MISSION · LOCK 4–8</p></div>`;
+  const art = s.video ? `<div class="pro-art fallback" hidden>${FLO(true)}<p>NIGHT MISSION · LOCK 4–8</p></div>` : `<div class="pro-art mission">${missionArt()}</div>`;
   const who = s.who === 'twin' ? '<p class="who twin"><span>♥</span>바이오 트윈 #0214 <small>몸 시뮬레이터</small></p>' : `<p class="who flo"><span>◉</span>${esc(N.aiName)}</p>`;
   const nextLabel = (Z().introSeen && T()?.storySeen) ? '🌙 밤 구역 입장' : `${esc(A.menu?.brief || '작전 설명')} 보기 ▶`;
   return `<main class="prologue nz-pro">
@@ -132,7 +174,7 @@ function rulesModal() {
     <article class="rule-box"><h3>🎯 미션 완료 조건</h3>
       <ul><li>장치 ${KEYS.length}개(LOCK 4~8) + 보너스 게임 ${GAME_KEYS.length}개를 모두 성공하면 <b>06:00 재가동</b>과 함께 <b>밤 구역 연구 인증서</b>를 받아요.</li>
       <li>LOCK마다 <b>시스템 점검(A)</b>을 마치면 <b>코드 락(B)</b>이 열려요. 암호는 연구원 수첩에서 풀고, 넣기 전에 <b>검사원</b>이 모두의 수첩을 확인해요.</li>
-      <li><b>태블릿은 LOCK마다 돌아가며 잡아요</b>: LOCK 4 중계관 → 5 팀장 → 6 기록원 → 7 영양사 → 8 검사원.</li>
+      <li><b>태블릿은 LOCK마다 돌아가며 잡아요</b>: 모둠장부터 입장할 때 적은 이름 순서대로 화면에 담당자가 나와요.</li>
       <li>LOCK을 복구할 때마다 <b>재가동 명령어 조각</b>이 나와요. 수첩 1쪽 수집판에 적어 두세요.</li>
       <li>시간 안에 다 못 끝내도 괜찮아요. <b>복구한 만큼</b> 인증서를 받아요.</li></ul></article>
     <article class="rule-box"><h3>🧮 연구 점수 계산 (최고 ${maxMission + maxTime}점)</h3>
