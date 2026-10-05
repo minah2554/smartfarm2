@@ -1,5 +1,5 @@
-/* 🌙 밤 구역 전용 디자인 — "낮과 같은 앱, 밤 색만 다르게"
-   낮 style.css의 부품(.modal .tabs .hint .primary .ghost .hud .ticker .stage .world …)을 그대로 쓰고, 색만 밤으로 바꿔요.
+/* 🌙 밤 구역 바깥 화면(상단 카드·지도 둘레·점수 안내·인증서 창·스토리 영상) 색 — 낮 style.css 부품을 그대로 쓰고 색만 밤으로 바꿔요.
+   LOCK 4~8 미션 화면 디자인은 mission.css (나이트 미션 원래 디자인)
    밤 전용 클래스는 모두 .nz(밤 화면) · .nz-ov(밤 창) · .nz-pro(밤 스토리 영상) · .night-game(밤 보너스 게임) 안에서만 써요. */
 .nz, .nz-ov, .nz-pro, .night-game {
   --night-deep: #14163A; --night-2: #23275A; --night-3: #3B3F8F;
@@ -12,8 +12,11 @@
 .nz .timer{background:var(--night-deep)}
 .nz .text-btn{color:#C9D0FF}
 .nz-hud{grid-template-columns:repeat(6,minmax(0,1fr))}
-.nz-hud .res{min-width:0}
-.nz-hud .res b{font-size:14px;line-height:1.3}
+.nz-hud .res{min-width:0;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.nz-hud .res{padding:6px 10px;gap:8px;justify-content:center;min-height:0}
+.nz-hud .res-icon{font-size:22px}
+.nz-hud .res b{font-size:15px;line-height:1.2;white-space:nowrap}
+.nz-hud .res small{font-size:12px}
 .nz-hud .res.lock{background:#1C1F45;border-color:#5B6190}.nz-hud .res.lock small{color:#9AA0C8}
 .nz-hud .res.growth{background:var(--night-2);border-color:var(--lav)}.nz-hud .res.growth small{color:#C9D0FF;letter-spacing:.04em}
 .nz .stage{border-color:var(--night-3)}
@@ -22,117 +25,19 @@
 .nz .ticker.ok{border-color:var(--leaf);color:var(--leaf)}.nz .ticker.ok .ai{background:var(--leaf)}
 .nz .howto{color:#AEB5E8}
 .nz .toast{background:#14163Af0;border-color:var(--lav)}
-.nz .world .mol.key.locked{cursor:not-allowed;opacity:.8}
-.nz .world .facility .tag rect.name{fill:var(--night-deep);stroke:var(--lav)}
-.nz .world .core-spin{transform-box:fill-box;transform-origin:center;animation:spin 6s linear infinite}
-.nz .world .nlamp.on rect{filter:drop-shadow(0 0 8px #C79BFF)}
-.nz .stage.is-over .world{filter:grayscale(.7) brightness(.6)}
-@media (max-width:860px){.nz-hud{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:480px){.nz-hud{grid-template-columns:repeat(2,minmax(0,1fr))}.nz-hud .res{padding:6px 8px;gap:6px}.nz-hud .res-icon{font-size:20px}}
+@media (max-width:640px){.nz-hud{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.nz-hud{grid-template-columns:repeat(3,minmax(0,1fr))}.nz-hud .res{padding:6px 8px;gap:6px}.nz-hud .res-icon{font-size:20px}}
 
-/* 밤 창 (암호 장치·뉴스·점수 안내·완료) */
+/* 밤 창 (점수 안내·완료·시간 종료) */
 .nz-ov{background:#0B0E22d9}
 .nz-ov .modal{background:var(--night-2);border-color:var(--night-3)}
 .nz-ov .modal.wide{width:min(100%,900px)}
-.nz-ov .terminal-modal{background:linear-gradient(180deg,#2B2F6B,#14163A)}
-.nz-ov .terminal-modal.cargo{border-color:#FF5FA2}.nz-ov .terminal-modal.energy{border-color:#FF8A3D}.nz-ov .terminal-modal.twin{border-color:#B07CFF}.nz-ov .terminal-modal.protocol{border-color:#3EC6E0}.nz-ov .terminal-modal.plan{border-color:var(--star)}
 .nz-ov .kicker{color:var(--lav)}
-.nz-ov .tabs{border-bottom-color:var(--night-3)}
-.nz-ov .tabs button{color:#C9D0FF}
-.nz-ov .tabs button.active{background:var(--night-deep);border-color:var(--night-3);border-bottom-color:var(--night-deep)}
-.nz-ov .ghost{border-color:var(--lav)}
-.nz-ov .muted{color:#B8C0F0}
-.nz-ov .hint.locked{border-color:var(--night-3)}
-.nz-ov .hint.open{background:var(--night-deep)}
-.nz-ov .hint li.sub{border-left-color:var(--night-3)}
-.nz-ov .hint .answer b{color:var(--pollen)}
-.nz-ov .code-input{background:var(--night-deep)}
-.nz-ov .code-input::placeholder{color:#7A82B8}
-.nz-ov .field{border-color:var(--lav)}
-.nz-ov .bonus-note{background:var(--night-deep)}
 .nz-ov .feedback.good{color:var(--leaf)}
 .nz-ov .rule-box,.nz-ov .tier{background:var(--night-deep)}
 .nz-ov .modal.rules{background:linear-gradient(180deg,#2B2F6B,#14163A)}
 .nz-ov .rule-table td{border-top-color:var(--night-3)}
 .nz-ov .rule-box h3{color:var(--lav)}
-
-/* 관제 AI 플로 말풍선 */
-.nz-speech{display:flex;gap:12px;align-items:flex-start;background:var(--night-deep);border:2px solid var(--night-3);border-radius:16px;padding:10px 14px;margin:6px 0 12px}
-.nz-speech .flo{width:58px;flex:none}
-.nz-speech p{margin:0;font-size:15px;line-height:1.6}
-.nz-speech b{color:#FF8FC2}
-
-/* 2단계 코드 락: 검사원 확인 */
-.nz-code{align-items:stretch}
-.nz-inspect{order:3;flex:1 1 100%;display:flex;gap:10px;align-items:flex-start;font-size:14px;background:#ffffff0d;border-radius:12px;padding:10px 12px;cursor:pointer}
-.nz-inspect input{width:22px;height:22px;flex:none;accent-color:var(--leaf)}
-.nz-code .primary{order:2}
-.word{color:var(--star)}
-.big-frag{width:110px;height:110px;margin:10px auto;border-radius:22px;display:grid;place-items:center;font-size:62px;font-weight:700;color:var(--night-deep);background:var(--star);box-shadow:0 0 30px #FFE9A888}
-.frag-inline{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--star);color:var(--night-deep);margin-left:4px}
-
-/* 카드 (분류·고르기·그래프 문항) */
-.nz-card{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:#ffffff12;border:2px solid var(--night-3);font-weight:700;line-height:1.4;min-height:44px}
-.nz-card small{display:block;font-weight:400;color:#B8C0F0;font-size:13px}
-.nz-card b{color:var(--pollen)}
-.nz-card.sel{background:#FFD23F22;border-color:var(--pollen)}
-.nz-card:hover{border-color:var(--lav)}
-.nz-clue{display:grid;gap:4px;background:var(--night-deep);border-radius:14px;padding:10px 14px;font-size:14px;margin:8px 0}
-.nz-pool{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
-.nz-tanks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.nz-tank{--tc:#9AA7FF;display:grid;justify-items:center;align-content:start;gap:4px;padding:12px 8px;border-radius:16px;border:2px dashed var(--tc);background:#ffffff08;min-height:150px;cursor:pointer;text-align:center}
-.nz-tank:hover{background:#ffffff14}
-.nz-tank b{color:var(--tc)}.nz-tank small{color:#B8C0F0;font-size:12px}
-.nz-tank .tube{width:22px;height:44px;border-radius:11px;border:2px solid #B8C0F0;position:relative;overflow:hidden}
-.nz-tank .tube i{position:absolute;left:0;right:0;bottom:0;background:var(--tc);transition:height .3s}
-.nz-tank .inside{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
-.nz-chip{font-size:13px;padding:4px 8px;border-radius:999px;background:var(--tc);color:var(--night-deep);font-weight:700}
-.nz-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}
-.nz-monitor{background:var(--night-deep);border:2px solid var(--night-3);border-radius:16px;padding:8px 10px;margin:8px 0}
-.nz-graph{width:100%;display:block}
-.nz-q p{margin:10px 0 6px}
-.nz-opts{display:flex;flex-wrap:wrap;gap:8px}.nz-opts .nz-card{width:auto;min-width:72px;text-align:center}
-
-/* 2단계 자료 (영양정보 · 로그 · 간식 세트) */
-.nz-labels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:10px 0}
-.nz-labels .nl{background:#fff;color:#1c1d2b;border-radius:10px;padding:10px 12px;font-size:14px}
-.nz-labels .nl p{margin:0}
-.nz-labels .pname{font-weight:700;margin-bottom:4px}
-.nz-labels .top{display:flex;justify-content:space-between;border-bottom:3px solid #1c1d2b;padding-bottom:2px;font-weight:700}
-.nz-labels .basis{font-size:13px;color:#555;margin:2px 0}
-.nz-labels table{width:100%;border-collapse:collapse}.nz-labels td{border-top:1px solid #ccc;padding:3px 0}.nz-labels td:last-child{text-align:right}
-.nz-labels tr.hl td{background:#FFE3EE;font-weight:700}
-.nz-logs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
-.nz-logs div{background:var(--night-deep);border-radius:12px;padding:10px 12px;border-left:4px solid #FF8FC2}
-.nz-logs p{margin:4px 0 0;font-size:14px}
-.nz-dz{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
-.nz-dz span{background:#ffffff12;border-radius:999px;padding:6px 12px;font-weight:700}.nz-dz b{color:var(--pollen);margin-right:4px}
-.nz-intake{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-.nz-intake span{background:#FF5A4E33;border:1px solid #FF5A4E88;border-radius:999px;padding:4px 12px;font-size:14px}
-.nz-sets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0 10px}
-.nz-sets div{background:var(--night-deep);border-radius:10px;padding:8px 10px;font-size:14px}
-
-/* LOCK 8 서약 · 승인 · 명령어 */
-.nz-pledges{display:grid;gap:8px;margin:8px 0}
-.nz-pledge{display:grid;grid-template-columns:.7fr 1fr 1.3fr .8fr;gap:6px}
-.nz-pledge .field{margin:0;padding:10px}
-.nz-approve{text-align:center;background:var(--night-deep);border-radius:16px;padding:14px;margin:8px 0}
-.nz-approve .pw-icon{font-size:40px;margin:0}
-.nz-approve .code-input{text-align:center}
-.nz-tiles{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0}
-.nz-tile{width:72px;height:80px;border-radius:16px;background:var(--star);color:var(--night-deep);font-size:34px;font-weight:700;display:grid;place-items:center;line-height:1;box-shadow:0 5px 0 #C9A94A}
-.nz-tile small{font-size:11px;font-weight:700;opacity:.7}
-.nz-tile.used{opacity:.3;box-shadow:none}
-.nz-spell{display:flex;gap:8px;justify-content:center;margin:8px 0}
-.nz-slot{width:56px;height:62px;border-radius:12px;border:3px dashed var(--lav);display:grid;place-items:center;font-size:30px;font-weight:700;color:var(--star)}
-.nz-slot:nth-child(1),.nz-slot:nth-child(3){margin-right:14px}
-
-/* 관제센터 긴급 뉴스 */
-.nz-news .breaking{display:inline-block;background:#FF5A4E;color:#fff;border-radius:999px;padding:3px 14px;font-weight:700;margin:0 0 8px}
-.nz-news h2{font-size:24px}
-.nz-news .nclip{margin:10px 0}
-.nz-news video{width:100%;max-height:260px;object-fit:cover;border-radius:12px;display:block;background:#000}
-.nz-news figcaption{font-size:12px;color:#B8C0F0;margin-top:4px}
 
 /* NIGHT CLEAR · TIME OVER */
 .nz-ov .modal.clear{background:linear-gradient(180deg,#3B3F8F,#FF9B6B 38%,#23275A 38%)}
@@ -153,39 +58,3 @@
 .nz-pro .who.twin{background:#FF4F8B;color:#fff}.nz-pro .who.twin span{background:#fff;color:#FF4F8B}
 .nz-pro .who small{font-weight:400;opacity:.85}
 .nz-pro .cine-sub.twin .sub-text{color:#FFE1EC}
-
-/* 보너스 게임: 모두의 온기 */
-.night-game .modal.game{background:linear-gradient(180deg,#2B2F6B,#14163A);border-color:var(--lav);text-align:center;transition:background 2s}
-.night-game .modal.game.dawn{background:linear-gradient(180deg,#7CC8F5,#FFD8A8 70%,#FFB27A)}
-.night-game .modal.game.dawn,.night-game .modal.game.dawn .kicker{color:#1c1d2b}
-.night-game .modal.game > .kicker{padding:0 64px}
-.night-game .wstage{position:relative;margin:10px auto 6px;width:min(100%,460px,calc(100dvh - 300px));min-width:260px;aspect-ratio:1;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-.night-game .wstage canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.night-game .core{--c:0;position:absolute;left:50%;top:50%;width:30%;aspect-ratio:1;transform:translate(-50%,-50%) scale(calc(.9 + var(--c)*.2));border-radius:50%;display:grid;place-items:center;
-  background:radial-gradient(circle,rgba(255,200,120,calc(.15 + var(--c)*.85)) 0%,rgba(255,140,60,calc(var(--c)*.6)) 45%,rgba(40,50,92,.9) 70%);border:3px solid rgba(255,200,97,calc(.3 + var(--c)*.7));
-  box-shadow:0 0 calc(10px + var(--c)*60px) rgba(255,170,80,calc(.2 + var(--c)*.6));font-size:20px;color:#fff;font-weight:700}
-.night-game .core-in{position:absolute;inset:18%;border-radius:50%;border:2px dashed rgba(255,255,255,calc(.2 + var(--c)*.6));animation:spin 6s linear infinite}
-.night-game .core.ignite{animation:nzignite 1.2s ease-out forwards}
-@keyframes nzignite{40%{box-shadow:0 0 200px 80px rgba(255,230,170,.95);background:#fff7e0}100%{box-shadow:0 0 90px 30px rgba(255,210,120,.8);background:radial-gradient(circle,#fffbe8 0%,#ffe08a 55%,#ffc04d 100%);color:#7a3d00;border-color:#ffe08a}}
-.night-game .wpad{--heat:0;position:absolute;width:22%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:4px;touch-action:none;cursor:pointer}
-.night-game .wring{width:100%;aspect-ratio:1;border-radius:50%;color:rgb(calc(169 + var(--heat)*86),calc(176 - var(--heat)*40),calc(214 - var(--heat)*150));
-  background:radial-gradient(circle,rgba(255,170,80,calc(var(--heat)*.75)),rgba(29,37,71,.95) 70%);border:2px solid rgba(255,200,97,calc(.25 + var(--heat)*.75));box-shadow:0 0 calc(var(--heat)*30px) rgba(255,160,70,.8)}
-.night-game .wring svg{width:100%;height:100%}
-.night-game .wr-bg{fill:none;stroke:rgba(255,255,255,.1);stroke-width:5}
-.night-game .wr-fg{fill:none;stroke:#FFC861;stroke-width:5;stroke-dasharray:276;stroke-dashoffset:276;transform:rotate(-90deg);transform-origin:50% 50%}
-.night-game .wpad span{font-size:13px;white-space:nowrap;max-width:110%;overflow:hidden;text-overflow:ellipsis}
-.night-game .wgauge{width:min(100%,460px);height:12px;margin:0 auto;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
-.night-game .wgauge i{display:block;height:100%;width:0;background:linear-gradient(90deg,#FF9D6B,#FFD25E)}
-.night-game .wcount{margin:6px 0 0;font-weight:700;color:var(--pollen)}
-.night-game .modal.dawn .wcount{color:#7a3d00}
-
-@media (max-width:640px){
-  .nz-tanks{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .nz-pick,.nz-labels,.nz-logs,.nz-sets{grid-template-columns:1fr}
-  .nz-pledge{grid-template-columns:1fr 1fr}
-  .nz-speech .flo{width:44px}
-  .nz-tile{width:58px;height:66px;font-size:28px}
-  .nz-slot{width:46px;height:52px;font-size:24px}
-}
-/* 움직임 줄이기: 눈에 부담되는 번쩍임만 끄고, 자막·장면 이동·진행 바는 그대로 */
-@media (prefers-reduced-motion:reduce){.nz .world .core-spin,.night-game .core-in{animation:none}.night-game .core.ignite{animation-duration:.01s}}
