@@ -2,7 +2,7 @@
 
 ## 방식: 낮 앱 구조 안에 나이트 미션 원래 화면 그대로 (iframe 없음)
 - 밤 구역 화면(`night/`)은 낮 앱의 모둠 선택·입장·타이머(35분)·저장(Firebase `/smartfarm/teams/{모둠}`)·대시보드·음소거를 그대로 써요. 자체 Firebase·모둠 선택·타이머는 없어요.
-- **밤의 온실 지도**: 나이트 미션 첫 화면의 유리 온실 그림(18:00 → 22:00 애니메이션)에 장치 버튼 5개 + 재가동 코어를 올렸어요.
+- **밤의 온실 지도**: 낮 온실과 같은 틀(유리 아치·관제 단말기·시설물)에 딸기·토마토 재배 베드, 땅속 뿌리·감자, 체관 배송관을 그렸어요. 낮처럼 **색이 다른 신호**를 찾아 누르면 LOCK이 열려요. LOCK을 복구할 때마다 야간 LED가 하나씩 켜지고, 모두 끝나면 새벽(꽃이 핌)으로 바뀌어요.
 - 장치를 누르면 **나이트 미션의 원래 LOCK 화면**(다이얼 자물쇠·A/B 단계·관제 AI 플로·프로토콜 설치 애니메이션·영양정보 라벨·뉴스·승인 키패드·모두의 온기·06:00 엔딩)이 온실 위에 겹쳐 열려요. 디자인은 원래 CSS를 `.nm` 안에서만 적용(`mission.css`)해서 낮 화면과 섞이지 않아요.
 - 기록은 `night/…` 경로에만 저장: `startedAt · introSeen · rulesOk · checkpoint(A 단계) · done(LOCK 복구) · hints · wrongs · pledges · bonus · finishedAt`
 - 진행 상태를 localStorage에 저장하지 않아요. 관리코드·PIN은 코드에 없어요 (LOCK 8 승인 = 밤 구역 관리코드를 서버가 확인).
@@ -19,10 +19,10 @@
 | `night/night-hints.js` | LOCK마다 힌트 2개 (나이트 미션 원래 힌트) |
 | `night/index.js` | 밤 화면 바깥 틀: 스토리 영상 · 점수 안내 · 밤의 온실 지도 · 시간 종료 · 인증서 |
 | `night/mission.js` | 나이트 미션 원래 LOCK 4~8 화면 · 모두의 온기 · 06:00 엔딩 |
-| `night/mission.css` | 나이트 미션 원래 디자인 (`.nm` 안에서만) + 지도 버튼. 글꼴 Jua·Gowun Dodum(Google Fonts) |
-| `night/night-scene.js` | 유리 온실 그림 (밤·새벽·인증서용) |
+| `night/mission.css` | 나이트 미션 원래 디자인 (`.nm` 안에서만). 글꼴 Jua·Gowun Dodum(Google Fonts) |
+| `night/night-scene.js` | 밤의 온실 지도(신호·재배 베드·땅속) + 06:00 엔딩용 유리 온실 그림 |
 | `night/night-cert.js` | 밤 인증서 (낮 cert.js와 같은 틀, 밤 색) |
-| `night/night.css` | 밤 화면 바깥 틀(상단 카드·점수 안내 창·스토리 영상) 밤 색 |
+| `night/night.css` | 밤 화면 바깥 틀(상단 카드·지도·점수 안내 창·스토리 영상) 밤 색 |
 | `night/assets/` | 스토리 영상 7개 (540p mp4 + webm) · `bgm_night.mp3` |
 | `night/REQUEST_낮구역.md` | 낮 선생님께 요청할 것 |
 

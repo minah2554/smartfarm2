@@ -506,25 +506,6 @@ body.nm-open{overflow:hidden}
 .nm .nm-certimg{width:100%;max-width:400px;aspect-ratio:3/4;display:grid;place-items:center;border-radius:14px;border:1px solid var(--line);color:var(--ink-dim);background:rgba(14,19,40,.7)}
 .nm .nm-certimg img{width:100%;height:100%;object-fit:contain;border-radius:14px;display:block}
 
-/* 밤의 온실 지도 (과학쌤 앱 밤 화면) */
-.nz-map{position:relative;display:grid;justify-items:center;padding:4px clamp(12px,3vw,28px) 2px}
-.nm .nz-mapframe{width:100%;max-width:min(1120px,calc((100vh - 250px) * 1.74));max-width:min(1120px,calc((100dvh - 250px) * 1.74));min-width:min(100%,320px)}
-.nm .nz-spots{position:absolute;inset:0}
-.nm .nz-mapframe.intro .nz-spots{opacity:0;animation:nm-hsfade .8s ease-out 4.4s forwards}
-.nm .nz-spot{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:99px;border:2px solid var(--sugar);background:rgba(14,19,40,.88);color:var(--ink);font-family:var(--f-display);font-size:clamp(12px,1.55vw,18px);line-height:1.15;cursor:pointer;white-space:nowrap;text-align:left;animation:nm-spotping 1.8s ease-out infinite;transition:transform .15s}
-.nm .nz-spot:hover,.nm .nz-spot:focus-visible{transform:translate(-50%,-50%) scale(1.06)}
-.nm .nz-spot .ic{font-size:1.45em;line-height:1}
-.nm .nz-spot small{display:block;font-family:var(--f-mono);font-size:.68em;letter-spacing:.08em;color:var(--sugar)}
-.nm .nz-spot i{font-style:normal;font-size:.85em}
-.nm .nz-spot.on{border-color:var(--leaf);animation:none}
-.nm .nz-spot.on small{color:var(--leaf)}
-.nm .nz-spot.lock{border-color:var(--line);animation:none;opacity:.8}
-.nm .nz-spot.lock small{color:var(--ink-dim)}
-.nm .nz-spot.nz-core{border-color:var(--amber)}
-.nm .nz-spot.nz-core small{color:var(--amber)}
-@keyframes nm-spotping{0%{box-shadow:0 0 0 0 rgba(255,143,194,.55)}70%{box-shadow:0 0 0 14px rgba(255,143,194,0)}100%{box-shadow:0 0 0 0 rgba(255,143,194,0)}}
-@media (max-width:700px){.nm .nz-spot .lb b{display:none}.nm .nz-spot{padding:4px 8px 4px 6px;gap:4px}}
-@media (prefers-reduced-motion:reduce){.nm .nz-spot{animation:none}}
 /* 온실 그림: 애니메이션이 끝난 모습 그대로 (다시 그려도 깜박이지 않게) */
 .nm .hero-svg.settled .hs-night,.nm .hero-svg.settled .hs-moon,.nm .hero-svg.settled .hs-led{opacity:1;animation:none}
 .nm .hero-svg.settled .hs-sun,.nm .hero-svg.settled .hs-ledoff{opacity:0;animation:none}
@@ -536,4 +517,3 @@ body.nm-open{overflow:hidden}
 .nm .hero-svg.dawn.settled .hs-flower{opacity:1;transform:none;animation:none}
 .nm .hero-svg.dawn.settled .hs-tuber{transform:none;animation:none}
 .nm .hero-svg.dawn.settled .hs-dew{animation-delay:0s!important}
-@media (max-width:520px){.nm .nz-spot .lb{display:none}.nm .nz-spot{padding:5px;border-width:2px}.nm .nz-spot .ic{font-size:20px}}

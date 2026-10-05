@@ -6,7 +6,7 @@
    화면: 🎬 스토리 영상(처음 한 번) → 작전 설명 → 점수 안내 → 밤의 온실(지도) → 장치를 누르면 나이트 미션 원래 화면(mission.js)
          → LOCK 4~8 → 보너스 '모두의 온기' → 06:00 엔딩 · 인증서 */
 import {NIGHT as N} from './night-content.js';
-import {farmSVG} from './night-scene.js';
+import {nightSceneSvg} from './night-scene.js';
 import * as MS from './mission.js';
 import {drawNightCertificate} from './night-cert.js';
 
@@ -18,7 +18,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '
 const limitMs = A => (A.CONFIG.missionMinutes?.night || 35) * 60000;
 
 /* 화면 상태 (기록이 아닌 것만 — 기록은 모두 모둠 기록 team.night) */
-const nui = {teamId: null, screen: null, pro: 0, modal: null, timeUpShown: false, cert: null, certBusy: false, mapIntro: false};
+const nui = {teamId: null, screen: null, pro: 0, modal: null, timeUpShown: false, cert: null, certBusy: false};
 let A = null;   // 마지막으로 받은 api
 
 /* ── 모둠 기록 읽기 ── */
@@ -30,6 +30,7 @@ const doneList = () => KEYS.filter(done);
 const bonusList = () => GAME_KEYS.filter(g => Z().bonus?.[g]);
 const isComplete = () => doneList().length === KEYS.length && bonusList().length === GAME_KEYS.length;
 const canOpen = k => (N.missions[k].requires || []).every(done);
+const sceneState = (dawn = false) => ({done: doneList(), bonus: bonusList(), open: canOpen, keys: KEYS, dawn});
 const timeUp = () => !!Z().startedAt && !Z().finishedAt && remaining() <= 0;
 const remaining = () => { const z = Z(); if (!z.startedAt) return limitMs(A); return z.startedAt + limitMs(A) - (z.finishedAt || A.now()); };
 const usedMs = () => { const z = Z(); if (!z.startedAt || (z.finishedAt && z.finishedAt <= z.startedAt)) return 0; return Math.min(limitMs(A), (z.finishedAt || A.now()) - z.startedAt); };
@@ -70,26 +71,24 @@ const FLO = (alert = true) => { const glow = alert ? '#FF8FC2' : '#8BD450', scre
 
 export function view(api) {
   A = api;
-  if (T()?.id !== nui.teamId) Object.assign(nui, {teamId: T()?.id, screen: null, pro: 0, modal: null, timeUpShown: false, cert: null, mapIntro: false});   // 다른 모둠으로 입장하면 화면 상태를 비움
+  if (T()?.id !== nui.teamId) Object.assign(nui, {teamId: T()?.id, screen: null, pro: 0, modal: null, timeUpShown: false, cert: null});   // 다른 모둠으로 입장하면 화면 상태를 비움
   if (!Z().introSeen && nui.screen === null && !timeUp()) nui.screen = 'prologue';   // 새로고침해도 처음 입장이면 스토리 영상부터
   if (nui.screen === 'prologue') return prologueView();
   if (!Z().rulesOk && !nui.modal && !timeUp()) nui.modal = 'rules';
   if (timeUp() && !nui.modal && !nui.timeUpShown) { nui.timeUpShown = true; nui.modal = 'timeup'; buildCert(); }
   const n = doneList().length, all = n === KEYS.length, over = timeUp(), complete = isComplete();
-  const intro = !nui.mapIntro && !complete && !nui.modal; if (intro) nui.mapIntro = true;   // 점수 안내를 닫고 처음 볼 때만 18:00 → 22:00 애니메이션
   const html = `<main class="night nz">
     ${A.topbar()}
     <section class="hud nz-hud" aria-label="야간 장치 상태">${KEYS.map(k => { const m = N.missions[k], lk = !done(k) && !canOpen(k);
       return `<button type="button" class="res ${done(k) ? 'on' : ''} ${lk ? 'lock' : ''}" data-nlock="${k}" title="${esc(m.lock)} ${esc(m.title)}"><span class="res-icon">${m.icon}</span><span><b>${esc(m.lock)}</b><small>${done(k) ? '복구 ✓' : lk ? '잠김' : '차단됨'}</small></span></button>`; }).join('')}
       <button type="button" class="res growth ${bonusList().length ? 'on' : ''} ${done('plan') ? '' : 'lock'}" data-ngame="warmth"><span class="res-icon">${N.games.warmth.icon}</span><span><b>BONUS</b><small>${bonusList().length ? '성공 ✓' : done('plan') ? '열림' : '잠김'}</small></span></button></section>
-    <section class="nm nz-map"><div class="hero-frame nz-mapframe ${intro ? 'intro' : ''}">
-      ${farmSVG({phase: complete ? 'dawn' : intro ? 'intro' : 'night'})}
-      <div class="hero-tag"><span class="led"></span>SMART-FARM BIO LAB · NIGHT CONTROL</div>
-      <div class="nz-spots">${KEYS.map(k => spot(k)).join('')}${coreSpot()}</div>
+    <section class="stage-wrap"><div class="stage ${over ? 'is-over' : ''}">
+      ${nightSceneSvg(sceneState(complete), N.games)}
       ${over ? `<div class="over-band"><b>TIME OVER</b><button class="primary" data-nopen="timeup">🏅 인증서 받기</button></div>` : ''}
-    </div><div class="toast" id="toast" role="status"></div></section>
+      <div class="toast" id="toast" role="status"></div>
+    </div></section>
     <section class="ticker ${all ? 'ok' : ''}" aria-live="polite"><span class="ai">${esc(N.aiName)}</span><span id="ticker">${esc(all ? N.aiLines.allClear : N.aiLines.idle[tickIdx % N.aiLines.idle.length])}</span></section>
-    <p class="howto">온실의 장치를 눌러 LOCK을 복구하세요 · LOCK 8은 LOCK 4~7을 모두 복구하면 열려요 · 재가동 명령어를 넣으면 재가동 코어에서 보너스 게임이 열려요</p>
+    <p class="howto">색이 다른 신호를 찾아 눌러 보세요 · LOCK 8은 LOCK 4~7을 모두 복구하면 열려요 · 재가동 명령어를 넣으면 재가동 코어에서 보너스 게임이 열려요</p>
   </main>${A.siteFooter()}`;
   return html + modalView();
 }
@@ -120,19 +119,6 @@ function prologueView() {
         ${replay && !last ? '<button class="text-btn" data-npro="skip">건너뛰기</button>' : ''}
         ${last ? `<button class="primary" data-npro="end">${nextLabel}</button>` : '<button class="primary" data-npro="1">다음 ▶</button>'}</div>
     </section></main>`;
-}
-
-/* 지도 위 장치 버튼 (위치는 온실 그림 기준 %) */
-const SPOTS = {cargo: [17, 45], energy: [37, 31], twin: [63, 31], protocol: [83, 45], plan: [70, 89]};
-function spot(k) {
-  const m = N.missions[k], [x, y] = SPOTS[k], lk = !done(k) && !canOpen(k), st = done(k) ? 'on' : lk ? 'lock' : '';
-  return `<button type="button" class="nz-spot ${st}" style="left:${x}%;top:${y}%" data-nlock="${k}" aria-label="${esc(m.lock)} ${esc(m.title)} ${done(k) ? '복구됨' : lk ? '잠김' : ''}">
-    <span class="ic">${m.icon}</span><span class="lb"><small>${esc(m.lock)} ${done(k) ? '✓' : lk ? '🔒' : '●'}</small><b>${esc(m.title)}</b></span></button>`;
-}
-function coreSpot() {
-  const g = N.games.warmth, ok = bonusList().includes('warmth'), lk = !done(g.unlockBy);
-  return `<button type="button" class="nz-spot nz-core ${ok ? 'on' : lk ? 'lock' : ''}" style="left:28%;top:88%" data-ngame="warmth" aria-label="보너스 ${esc(g.title)}">
-    <span class="ic">${g.icon}</span><span class="lb"><small>BONUS ${ok ? '✓' : lk ? '🔒' : '●'}</small><b>${esc(g.title)}</b></span></button>`;
 }
 
 function rulesModal() {
@@ -221,7 +207,7 @@ async function buildCert() {
     const canvas = await drawNightCertificate({
       title: N.certificate.title, tier: {badge: sc.tier.badge, title: `${sc.tier.title} · ${sc.total}점`}, complete,
       speed: complete && usedMs() <= N.certificate.speedMinutes * 60000,
-      sceneSvg: farmSVG({phase: complete ? 'dawn' : 'night', bare: true}),
+      sceneSvg: nightSceneSvg(sceneState(complete), N.games, {bare: true}),
       word: complete ? `"${N.missions.plan.answer.replace(/^(.)(..)(..)$/, '$1 $2 $3')}"` : '',
       leader: t.leader, members: A.toList(t.members), teamLabel: A.teamLabel(),
       timeText: complete ? (usedMs() > 0 ? `⏱ 미션 완료 ${A.fmt(usedMs())}` : '⏱ 미션 완료') : `⏱ 시간 종료 · 진행 ${sc.locks + sc.bonus}/${KEYS.length + GAME_KEYS.length}`,
@@ -303,9 +289,17 @@ export function bind(root, api) {
   // 밤의 온실: 장치 버튼 · 상단 카드
   $$('[data-nlock]').forEach(b => b.onclick = () => openLock(b.dataset.nlock));
   $$('[data-ngame]').forEach(b => b.onclick = () => startGame(b.dataset.ngame));
-  if ($('.nz-mapframe.intro')) {   // 18:00 → 22:00 시계
-    const hc = $('#heroClock'); let hh = 18;
-    const clk = setInterval(() => { if (!hc || !document.body.contains(hc)) { clearInterval(clk); return; } if (hh < 22) { hh++; hc.textContent = hh + ':00'; } else clearInterval(clk); }, 1100);
+  const world = $('.nz .world');
+  if (world) {
+    const act = e => {
+      const el = e.target.closest('[data-lock],[data-decoy],[data-game]'); if (!el) return;
+      if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      if (el.dataset.lock) openLock(el.dataset.lock);
+      else if (el.dataset.game) startGame(el.dataset.game);
+      else { el.classList.remove('wiggle'); void el.getBoundingClientRect(); el.classList.add('wiggle'); A.sfx.tap(); const L = N.aiLines.decoy; toast(L[Math.floor(Math.random() * L.length)]); }
+    };
+    world.addEventListener('click', act); world.addEventListener('keydown', act);
   }
 
   // 창 닫기

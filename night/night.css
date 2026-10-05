@@ -25,6 +25,12 @@
 .nz .ticker.ok{border-color:var(--leaf);color:var(--leaf)}.nz .ticker.ok .ai{background:var(--leaf)}
 .nz .howto{color:#AEB5E8}
 .nz .toast{background:#14163Af0;border-color:var(--lav)}
+.nz .world .mol.key.locked{cursor:not-allowed;opacity:.8}
+.nz .world .facility .tag rect.name{fill:var(--night-deep);stroke:var(--lav)}
+.nz .world .core-spin{transform-box:fill-box;transform-origin:center;animation:spin 6s linear infinite}
+.nz .world .nlamp.on rect{filter:drop-shadow(0 0 8px #C79BFF)}
+.nz .stage.is-over .world{filter:grayscale(.7) brightness(.6)}
+@media (prefers-reduced-motion:reduce){.nz .world .core-spin{animation:none}}
 @media (max-width:640px){.nz-hud{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:480px){.nz-hud{grid-template-columns:repeat(3,minmax(0,1fr))}.nz-hud .res{padding:6px 8px;gap:6px}.nz-hud .res-icon{font-size:20px}}
 
