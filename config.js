@@ -12,9 +12,9 @@ export const CONFIG = {
   missionMinutes: { day: 35, night: 35 },
 
   // 밤 모드 화면이 완성되면 true로 바꾸세요. false이면 밤 모드는 '준비 중' 화면만 보이고 타이머가 시작되지 않아요.
-  nightEnabled: false,
+  nightEnabled: true,   // [NIGHT] 밤 구역 화면 완성 (night/ 폴더)
   // 교사용 대시보드 🌙 줄에 보여 줄 칸 수 = 밤 구역 미션 수 + 밤 보너스 게임 수 (밤 구역 선생님이 정해요)
-  nightSlots: 6,
+  nightSlots: 6,   // [NIGHT] 밤 장치 5개(LOCK 4~8) + 보너스 1개(모두의 온기)
 
   // 🔐 관리코드(낮·밤·대시보드)는 보안을 위해 이 파일에 두지 않아요.
   //    → api/verify.js 파일 맨 위 CODES에서 바꾸세요. (Vercel 서버에서만 확인돼서 개발자 도구로도 보이지 않아요)

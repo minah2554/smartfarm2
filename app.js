@@ -8,6 +8,7 @@ import {prologueScene} from './prologue.js';
 import {drawCertificate, downloadCanvas, loadPhoto} from './cert.js';
 import {getTeam, patchTeam, applyPatch, fetchTeams, watchTeams, watchTeam, deleteTeam, clearTeams, syncLabel, syncClock, now, SERVER_TIME, addHall, fetchHall, clearHall} from './sync.js';
 import {sfx, isMuted, toggleMute, bgm} from './sound.js';
+import * as NZ from './night/index.js';   // [NIGHT] 밤 구역 화면
 
 /* ───────── 상태 ─────────
    기기(sf2-device) : 이 기기가 마지막으로 입장한 모둠, 보던 화면 (관리코드는 입장할 때마다 새로 확인)
@@ -103,6 +104,12 @@ function timerChip(mode) {
 function topbar(mode) {
   const M = C.menu || {story: '스토리 영상', brief: '작전 설명', rules: '점수 안내'};
   const certReady = mode === 'day' && (isComplete() || timeUp());
+  if (mode === 'night') {   // [NIGHT] 밤도 같은 상단 메뉴 3개 (스토리 영상 · 작전 설명 · 점수 안내)와 인증서 버튼
+    const nReady = NZ.certReady(nightApi);
+    return `<header class="topbar">${homeBtn()}<span class="team-badge">${esc(teamLabel())}</span>${timerChip(mode)}
+    ${nReady ? `<button class="cert-btn" data-n-open="${NZ.certKind(nightApi)}">🏅 인증서</button>` : ''}
+    <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}<button class="text-btn" data-n-story>${esc(M.story)}</button><button class="text-btn" data-replay>${esc(M.brief)}</button><button class="text-btn" data-n-rules>${esc(M.rules)}</button></header>`;
+  }
   return `<header class="topbar">${homeBtn()}<span class="team-badge">${esc(teamLabel())}</span>${timerChip(mode)}
     ${certReady ? `<button class="cert-btn" data-open="${isComplete() ? 'complete' : 'timeup'}">🏅 인증서</button>` : ''}
     <span class="grow"></span>${modeSwitch(mode)}${muteBtn()}${mode === 'day' ? `<button class="text-btn" data-prologue>${esc(M.story)}</button>` : ''}<button class="text-btn" data-replay>${esc(M.brief)}</button>${mode === 'day' ? `<button class="text-btn" data-rules>${esc(M.rules)}</button>` : ''}</header>`;
@@ -310,12 +317,19 @@ function homeConfirm() {
 }
 
 /* ───────── 4. 밤 구역 ───────── */
+// [NIGHT] 밤 구역 화면은 night/ 폴더에서 그려요. 모둠 기록·저장·타이머·상단 바는 이 앱 것을 그대로 넘겨줘요.
+const nightApi = {
+  get team() { return team; }, save, SERVER_TIME, now, render, go, sfx, isMuted, toggleMute, fmt, toList, esc, CONFIG, menu: C.menu,
+  topbar: () => topbar('night'), timerChip, siteFooter, teamLabel: () => teamLabel(), checkCode, downloadCanvas,
+  briefing: () => { ui.slide = 0; go('briefing'); }
+};
 function nightView() {
-  return `<main class="night">
+  if (!CONFIG.nightEnabled) return `<main class="night">
     ${topbar('night')}
     <section class="night-card"><div class="moon" aria-hidden="true"></div><p class="kicker">NIGHT ZONE</p><h1>밤의 온실</h1>
       <p>${esc(C.nightWaiting)}</p>
       <p class="muted">낮 구역 진행: 장치 ${doneList().length}/3 · 보너스 ${bonusList().length}/3 — 스위치를 해로 돌리면 낮 구역으로 이동해요.</p></section></main>${siteFooter()}`;
+  return NZ.view(nightApi);   // [NIGHT]
 }
 
 /* ───────── 5. 교사용 대시보드 ───────── */
@@ -411,6 +425,7 @@ function render() {
   app.innerHTML = html;
   ui.grow = false;
   bind();
+  if (view === 'night' && CONFIG.nightEnabled) NZ.bind(app, nightApi);   // [NIGHT]
   if (view === 'briefing') typeText();
   if (view === 'prologue') playPrologue();
   if (view === 'day' && !ui.modal) startTicker();
@@ -430,6 +445,7 @@ function tick() {
     const left = remaining(team, mode); el.textContent = fmt(left);
     el.parentElement.classList.toggle('hurry', left <= 5 * 60000);
   }
+  if (view === 'night' && CONFIG.nightEnabled) NZ.tick(nightApi);   // [NIGHT] 밤 시간 종료 감지
   if (view === 'day' && timeUp() && !ui.timeUpShown) {
     ui.timeUpShown = true;
     document.querySelectorAll('.game-layer').forEach(x => x.remove());
@@ -513,7 +529,7 @@ function startTeamWatch() {
     if (sig(rec) === sig(team)) { team = rec; return; }
     team = rec;
     const typing = document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName) && app.contains(document.activeElement);
-    if (!typing && !document.querySelector('.game-layer') && view !== 'briefing' && view !== 'prologue') render();
+    if (!typing && !document.querySelector('.game-layer') && view !== 'briefing' && view !== 'prologue' && !(view === 'night' && NZ.busy())) render();   // [NIGHT] 밤 스토리 영상 중에는 다시 그리지 않음
   });
 }
 
@@ -560,6 +576,7 @@ function enterMode(mode) {
   save(patch);
   ui.modal = null;
   if (mode === 'day' && !Z('day').introSeen && !team.storySeen) { ui.pro = 0; go('prologue'); return; }   // 낮 구역 첫 입장 → 프롤로그 영상
+  if (mode === 'night' && CONFIG.nightEnabled && !Z('night').introSeen) { NZ.startPrologue(); go('night'); return; }   // [NIGHT] 밤 첫 입장 → 밤 스토리 영상
   if (!team.storySeen) { ui.slide = 0; go('briefing'); } else go(mode);
 }
 function pickModeInGame(kind) {
