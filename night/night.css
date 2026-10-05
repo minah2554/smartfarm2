@@ -66,3 +66,18 @@
 .nz-pro .who.twin{background:#FF4F8B;color:#fff}.nz-pro .who.twin span{background:#fff;color:#FF4F8B}
 .nz-pro .who small{font-weight:400;opacity:.85}
 .nz-pro .cine-sub.twin .sub-text{color:#FFE1EC}
+
+/* 교사용 대시보드 모둠 카드의 밤 칸 (실천 서약 · 승인) */
+.nz-admin{margin-top:8px;border:2px solid #9AA7FF55;border-radius:12px;padding:8px 10px;background:#14163A;color:#E6E8FF;font-size:13px;text-align:left}
+.nz-admin.wait{border-color:#FFD23F;box-shadow:0 0 0 3px #FFD23F33;animation:nzbell 1.4s ease-in-out infinite}
+@keyframes nzbell{50%{box-shadow:0 0 0 6px #FFD23F22}}
+.nz-ad-h{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0}
+.nz-ad-h b{color:#C9D0FF}.nz-ad-h span{color:#AEB5E8}
+.nz-ap{margin-left:auto;border-radius:999px;padding:5px 12px;font-weight:700;font-size:13px}
+.nz-ap.ok{background:#1F4D2A;color:#8BD450}
+.nz-ap.req{background:#FFD23F;color:#14163A;border:0;cursor:pointer;box-shadow:0 3px 0 #C99A00}
+.nz-ap.req:disabled{opacity:.7;cursor:default}
+.nz-ad-bell{margin:6px 0 0;color:#FFD23F;font-weight:700}
+.nz-pl{margin:6px 0 0;padding-left:16px;display:grid;gap:2px}
+.nz-pl b{color:#FF8FC2}
+@media (prefers-reduced-motion:reduce){.nz-admin.wait{animation:none}}

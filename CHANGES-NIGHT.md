@@ -4,8 +4,9 @@
 - 밤 구역 화면(`night/`)은 낮 앱의 모둠 선택·입장·타이머(35분)·저장(Firebase `/smartfarm/teams/{모둠}`)·대시보드·음소거를 그대로 써요. 자체 Firebase·모둠 선택·타이머는 없어요.
 - **밤의 온실 지도**: 낮 온실과 같은 틀(유리 아치·관제 단말기·시설물)에 딸기·토마토 재배 베드, 땅속 뿌리·감자, 체관 배송관을 그렸어요. 낮처럼 **색이 다른 신호**를 찾아 누르면 LOCK이 열려요. LOCK을 복구할 때마다 야간 LED가 하나씩 켜지고, 모두 끝나면 새벽(꽃이 핌)으로 바뀌어요.
 - 장치를 누르면 **나이트 미션의 원래 LOCK 화면**(다이얼 자물쇠·A/B 단계·관제 AI 플로·프로토콜 설치 애니메이션·영양정보 라벨·뉴스·승인 키패드·모두의 온기·06:00 엔딩)이 온실 위에 겹쳐 열려요. 디자인은 원래 CSS를 `.nm` 안에서만 적용(`mission.css`)해서 낮 화면과 섞이지 않아요.
-- 기록은 `night/…` 경로에만 저장: `startedAt · introSeen · rulesOk · checkpoint(A 단계) · done(LOCK 복구) · hints · wrongs · pledges · bonus · finishedAt`
-- 진행 상태를 localStorage에 저장하지 않아요. 관리코드·PIN은 코드에 없어요 (LOCK 8 승인 = 밤 구역 관리코드를 서버가 확인).
+- 기록은 `night/…` 경로에만 저장: `startedAt · introSeen · rulesOk · checkpoint(A 단계) · done(LOCK 복구) · hints · wrongs · pledges · approvalRequested · approvedAt · bonus · finishedAt`
+- 진행 상태를 localStorage에 저장하지 않아요. 관리코드·PIN은 코드에 없어요.
+- **LOCK 8 연구소장 승인**: 학생이 서약을 내면(`night/pledges`, `night/approvalRequested`) 교사용 대시보드 모둠 카드에 서약과 [승인] 버튼이 떠요. 선생님이 누르면 `night/approvedAt`이 저장되고 학생 태블릿 패드가 저절로 열려요. 인터넷이 불안하면 '선생님이 이 태블릿에서 직접 승인' → 밤 구역 관리코드(서버 확인).
 
 ## 학생 흐름
 입장(🌙 밤) → 밤 스토리 영상 7장면 → 작전 설명 → 점수 안내 → **밤의 온실 지도**
@@ -35,7 +36,8 @@
 | `app.js` | `nightView()` | `nightEnabled`이면 `NZ.view()` (아니면 기존 '준비 중' 카드) |
 | `app.js` | `render()`, `tick()` 각 1줄 | 밤 화면 연결, 밤 시간 종료 감지 |
 | `app.js` | `enterMode()` 1줄 | 밤 첫 입장 → 밤 스토리 영상 |
-| `app.js` | `startTeamWatch` 조건 1개 | 밤 스토리 영상 중에는 다시 그리지 않음 |
+| `app.js` | `startTeamWatch` 조건 1개 | 밤 스토리 영상·밤 미션 화면 중에는 다시 그리지 않음 |
+| `app.js` | 대시보드 모둠 카드에 `NZ.adminCard(t)` · `render()`에 `NZ.bindAdmin` 1줄 · `nightApi`에 `patchTeam` | 밤 점수·실천 서약 목록·[승인] 버튼 (선생님이 승인하면 학생 태블릿 승인 패드가 열림) |
 | `config.js` | `nightEnabled: true`, `nightSlots` 주석 | 밤 구역 켜기 (장치 5 + 보너스 1) |
 
 낮 구역 파일(content.js, hints.js, scene.js, games.js, plant.js, prologue.js, style.css, sync.js, sound.js, api/verify.js), cert.js, index.html은 고치지 않았어요.

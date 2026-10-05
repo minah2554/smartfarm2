@@ -93,13 +93,22 @@ function sfxPlay(kind) {
     [2093, 2637, 3136].forEach((f, k) => tone(a, f, t + 0.5 + k * 0.06, 0.25, 0.025, 'sine'));
   }
 }
-let bgmEl = null;
+/* 밤 배경음(bgm_night.mp3): 스토리 영상 '혈당 경보'가 끝나는 순간부터 → 작전 설명 → 밤의 온실 → LOCK 화면까지 끊김 없이.
+   보너스 게임·엔딩에서는 멈추고, 🔊 음소거를 따라요. */
+let bgmEl = null, outer = false, fadeT = null, bgmTimer = null, lastNight = 0;
+const nightOnScreen = () => { if (document.querySelector('main.nz, .nz-pro')) { lastNight = Date.now(); return true; } return document.body.dataset.view === 'briefing' && Date.now() - lastNight < 5 * 60000; };   // 밤 스토리 영상 바로 뒤 작전 설명까지
+export function music(api, on) { A = api || A; outer = !!on; if (!bgmTimer) bgmTimer = setInterval(bgmSync, 500); bgmSync(); }
+function fadeTo(v, after) {
+  clearInterval(fadeT); const from = bgmEl.volume, t0 = Date.now(), ms = 1600;
+  fadeT = setInterval(() => { const k = Math.min(1, (Date.now() - t0) / ms); bgmEl.volume = Math.max(0, Math.min(1, from + (v - from) * k)); if (k >= 1) { clearInterval(fadeT); after?.(); } }, 50);
+}
 function bgmSync() {
-  const want = !!L && phase === 'stage' && soundOn() && !!N.music?.file;
-  if (!bgmEl && want) { bgmEl = new Audio(N.assets + N.music.file); bgmEl.loop = true; bgmEl.volume = N.music.volume ?? 0.3; }
+  if (!A || !N.music?.file) return;
+  const want = soundOn() && (L ? phase === 'stage' : outer && nightOnScreen());
+  if (!bgmEl && want) { bgmEl = new Audio(N.assets + N.music.file); bgmEl.loop = true; bgmEl.volume = 0; bgmEl.dataset.on = ''; }
   if (!bgmEl) return;
-  if (want && bgmEl.paused) bgmEl.play()?.catch?.(() => {});
-  if (!want && !bgmEl.paused) bgmEl.pause();
+  if (want && !bgmEl.dataset.on) { bgmEl.dataset.on = '1'; bgmEl.play()?.catch?.(() => { bgmEl.dataset.on = ''; }); fadeTo(N.music.volume ?? 0.3); }
+  if (!want && bgmEl.dataset.on) { bgmEl.dataset.on = ''; fadeTo(0, () => { if (!bgmEl.dataset.on) bgmEl.pause(); }); }
 }
 
 /* ── 관제 AI '플로' ── */
@@ -131,7 +140,7 @@ function hud() {
 function updTimer() {
   const el = q('#nmTimer'); if (!el || !A) return;
   const ms = left(); el.textContent = A.fmt(Math.max(0, ms)); el.classList.toggle('over', ms <= 0);
-  bgmSync();
+  bgmSync(); watchApproval();
 }
 const consoleBar = no => `<div class="consolebar"><span><span class="led"></span>SMART-FARM BIO LAB · NIGHT CONTROL</span><span>LAB TIME <b>${esc(M[key(no)].time)}</b></span><span><span class="led red"></span>GLUCOSE ALERT · LOCK ${no + 3}</span></div>`;
 function stageShell(no, title, speech, body, top) {
@@ -445,7 +454,11 @@ function termHTML() {
 }
 function renderS5() {
   const m = M.plan, cp = m.checkpoint;
-  if (!mem.pledges.length) { const p = people(); mem.pledges = Array.from({length: Math.max(cp.min, Math.min(cp.max, p.length))}, (_, i) => ({who: p[i] || '', when: '', what: '', much: ''})); }
+  if (!mem.pledges.length) {
+    const saved = Object.values(Z().pledges || {}).filter(Boolean);
+    if (saved.length) mem.pledges = saved.map(p => ({who: p.who || '', when: p.when || '', what: p.what || '', much: p.much || ''}));
+    else { const p = people(); mem.pledges = Array.from({length: Math.max(cp.min, Math.min(cp.max, p.length))}, (_, i) => ({who: p[i] || '', when: '', what: '', much: ''})); }
+  }
   const rows = mem.pledges.map((p, i) => `<div class="pledge" data-i="${i}">` +
     `<input class="input who" placeholder="이름" value="${esc(p.who)}" data-k="who" aria-label="이름" maxlength="10">` +
     `<input class="input" placeholder="${esc(cp.placeholders.when)}" value="${esc(p.when)}" data-k="when" aria-label="언제">` +
@@ -470,8 +483,11 @@ function renderS5() {
     const good = mem.pledges.filter(p => p.who.trim() && p.when.trim().length >= 2 && p.what.trim().length >= 4 && p.much.trim().length >= 2);
     if (good.length < cp.min) { setFb('fb5', fill(cp.tooFew, {n: good.length})); return; }
     if (good.some(p => /^(당|설탕)?\s*(줄이기|안\s*먹기|줄인다)$/.test(p.what.trim()))) { setFb('fb5', cp.vague); return; }
+    A.save({'night/pledges': pledgeRec(), 'night/approvalRequested': A.SERVER_TIME});   // 서약이 교사용 대시보드로 가요
     openApprovalPad();
   };
+  if (!sub(5) && Z().approvedAt) setTimeout(approveSuccess, 50);
+  else if (!sub(5) && Z().approvalRequested) setTimeout(openApprovalPad, 50);
   q('#resetSpell').onclick = () => { mem.spell = []; renderS5(); };
   qa('#tiles .tile').forEach(t => t.onclick = () => { if (!sub(5)) return; const st = +t.dataset.st; if (!mem.spell.includes(st) && mem.spell.length < 5) { mem.spell.push(st); renderS5(); } });
   q('#cast').onclick = () => {
@@ -481,37 +497,55 @@ function renderS5() {
   };
   bindCommon();
 }
-/* 연구소장 승인 패드: 선생님이 '밤 구역 관리코드'를 누르면 서버가 확인해요 */
+/* 연구소장 승인 패드 — 원래 나이트 미션과 같아요
+   ① 서약을 내면 교사용 대시보드에 서약이 뜨고, 선생님이 대시보드에서 [승인]을 누르면 이 패드가 저절로 열려요.
+   ② '선생님이 이 태블릿에서 직접 승인'을 누르면 선생님이 밤 구역 관리코드를 눌러 승인해요(서버가 확인). */
 const PIN_LEN = 4;
+let pad = null;
+function pledgeRec() { const pl = {}; mem.pledges.filter(p => p.who.trim() || p.what.trim()).forEach((p, i) => { pl[i] = {who: p.who.trim(), when: p.when.trim(), what: p.what.trim(), much: p.much.trim()}; }); return pl; }
 function openApprovalPad() {
+  if (pad && document.body.contains(pad.el)) return;
   const dots = '<i></i>'.repeat(PIN_LEN);
   const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, 'clr', 0, 'del'].map(k => k === 'clr' ? '<button class="pk fn" data-k="clr" aria-label="모두 지우기">C</button>' : k === 'del' ? '<button class="pk fn" data-k="del" aria-label="한 칸 지우기">⌫</button>' : `<button class="pk" data-k="${k}">${k}</button>`).join('');
   const d = overlay('<div class="pinpad"><div class="eyebrow">DIRECTOR APPROVAL</div><h3>연구소장 승인</h3>' +
-    `<p class="dim" style="font-size:14px">${esc(M.plan.checkpoint.approval)}</p>` +
-    `<div class="pdots" id="pdots">${dots}</div><p class="nfb" id="fbPin" style="text-align:center"></p><div class="pkeys" id="pkeys">${keys}</div>` +
-    '<div class="nrow" style="justify-content:center"><button class="btn nghost nsmall" id="pinX">닫기</button></div></div>');
+    `<p class="dim" style="font-size:14px">${M.plan.checkpoint.approval}</p>` +
+    `<div class="pdots" id="pdots">${dots}</div><p class="nfb" id="fbPin" style="text-align:center"><span class="blinkw">● 연구소장 승인 대기 중…</span></p><div class="pkeys" id="pkeys">${keys}</div>` +
+    '<div class="nrow" style="justify-content:center"><button class="btn nghost nsmall" id="padLocal">선생님이 이 태블릿에서 직접 승인</button><button class="btn nghost nsmall" id="pinX">닫기</button></div></div>');
+  const ov = q('.noverlay', d); ov.classList.add('waiting');
   let val = '', busy = false;
   const dotEls = qa('#pdots i', d), paint = () => dotEls.forEach((e, i) => e.classList.toggle('on', i < val.length));
   const fbp = (msg, good) => { const f = q('#fbPin', d); f.textContent = msg; f.className = 'nfb ' + (good ? 'good' : 'bad'); };
+  const finish = () => { done(); approveSuccess(); };
   async function check() {
     busy = true; fbp('확인 중…');
     const r = await A.checkCode('night', val);
-    if (r === 'ok') { dotEls.forEach(e => e.classList.add('ok')); fbp('승인되었습니다', true); sfxPlay('correct'); setTimeout(() => { done(); approveSuccess(); }, 600); return; }
+    if (r === 'ok') { dotEls.forEach(e => e.classList.add('ok')); fbp('승인되었습니다', true); sfxPlay('correct'); setTimeout(finish, 600); return; }
     const pd = q('#pdots', d); pd.classList.remove('shake'); void pd.offsetWidth; pd.classList.add('shake'); sfxPlay('wrong');
     fbp(r === 'server' ? '승인 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.' : M.plan.checkpoint.approvalWrong);
     setTimeout(() => { val = ''; paint(); busy = false; }, 450);
   }
-  const press = k => { if (busy) return; if (k === 'clr') val = ''; else if (k === 'del') val = val.slice(0, -1); else if (val.length < PIN_LEN) val += String(k); paint(); if (val.length === PIN_LEN) check(); };
+  const press = k => { if (busy || ov.classList.contains('waiting')) return; if (k === 'clr') val = ''; else if (k === 'del') val = val.slice(0, -1); else if (val.length < PIN_LEN) val += String(k); paint(); if (val.length === PIN_LEN) check(); };
   qa('.pk', d).forEach(b => b.onclick = () => press(b.dataset.k));
   const onKey = e => { if (!document.body.contains(d)) { done(); return; } if (/^[0-9]$/.test(e.key)) press(e.key); else if (e.key === 'Backspace') press('del'); };
   document.addEventListener('keydown', onKey);
-  const done = () => { document.removeEventListener('keydown', onKey); d.remove(); };
+  const done = () => { document.removeEventListener('keydown', onKey); d.remove(); pad = null; };
   q('#pinX', d).onclick = done;
+  q('#padLocal', d).onclick = e => { ov.classList.remove('waiting'); fbp('선생님이 밤 구역 관리코드를 눌러 주세요'); e.currentTarget.remove(); };
+  // 대시보드 승인이 들어오면: 숫자가 저절로 채워지며 열림
+  const remoteFill = () => { busy = true; ov.classList.remove('waiting'); let i = 0; const ks = qa('.pk:not(.fn)', d);
+    (function step() { if (i >= PIN_LEN) { dotEls.forEach(e => e.classList.add('ok')); fbp('연구소장 승인 완료', true); sfxPlay('correct'); setTimeout(finish, 700); return; }
+      const k = ks[Math.floor(Math.random() * ks.length)]; k.classList.add('flash'); setTimeout(() => k.classList.remove('flash'), 260);
+      dotEls[i].classList.add('on'); i++; setTimeout(step, 380); })(); };
+  pad = {el: d, remoteFill, filling: false};
+}
+function watchApproval() {   // 0.5초마다 (updTimer)
+  if (!pad || pad.filling || !Z().approvedAt || sub(5)) return;
+  pad.filling = true; pad.remoteFill();
 }
 function approveSuccess() {
   if (sub(5)) return;
-  const pl = {}; mem.pledges.filter(p => p.who.trim() || p.what.trim()).forEach((p, i) => { pl[i] = {who: p.who.trim(), when: p.when.trim(), what: p.what.trim(), much: p.much.trim()}; });
-  A.save({'night/pledges': pl, 'night/checkpoint/plan': A.SERVER_TIME});
+  if (pad) { pad.el.remove(); pad = null; }
+  A.save({'night/pledges': pledgeRec(), 'night/checkpoint/plan': A.SERVER_TIME});
   renderS5(); SFX.next = 'pass'; setFb('fb5', `연구소장 승인 완료! 마지막 조각 ⑤ '${M.plan.frag}'를 확보했습니다.`, true);
   q('#partB')?.scrollIntoView({behavior: 'smooth', block: 'start'});
 }

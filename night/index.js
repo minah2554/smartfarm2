@@ -64,6 +64,27 @@ export function tick(api) {
   }
 }
 
+/* ── 교사용 대시보드(app.js)의 모둠 카드에 붙는 밤 칸: 밤 점수·힌트·실천 서약·[승인] 버튼 ── */
+export function adminCard(t) {
+  const z = t?.night || {}; if (!z.startedAt) return '';
+  const sc = nightScore(t), hints = KEYS.reduce((a, k) => a + (z.hints?.[k] || 0), 0);
+  const pl = Object.values(z.pledges || {}).filter(p => p && (p.who || p.what));
+  const ok = !!z.checkpoint?.plan, req = !!z.approvalRequested && !ok;
+  const status = ok ? '<span class="nz-ap ok">✓ 서약 승인 완료</span>' : req ? `<button type="button" class="nz-ap req" data-napprove="${esc(t.id)}">✅ 실천 서약 승인</button>` : '';
+  return `<div class="nz-admin ${req ? 'wait' : ''}">
+    <p class="nz-ad-h"><b>🌙 밤 ${sc.total}점</b><span>LOCK ${sc.locks}/5 · 보너스 ${sc.bonus}/1 · 힌트 ${hints} · 오답 ${z.wrongs || 0}</span>${status}</p>
+    ${req ? '<p class="nz-ad-bell">🔔 실천 서약 승인 요청이 왔어요</p>' : ''}
+    ${pl.length ? `<ul class="nz-pl">${pl.map(p => `<li><b>${esc(p.who || '이름 없음')}</b> ${esc(p.when)} · ${esc(p.what)} · ${esc(p.much)}</li>`).join('')}</ul>` : ''}
+  </div>`;
+}
+export function bindAdmin(root, api) {
+  root.querySelectorAll('[data-napprove]').forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = '승인 보내는 중…';
+    await api.patchTeam(b.dataset.napprove, {'night/approvedAt': api.SERVER_TIME});
+    b.textContent = '✓ 승인 보냄'; api.sfx.unlock?.();
+  });
+}
+
 /* ───────── 화면 그리기 ───────── */
 const FLO = (alert = true) => { const glow = alert ? '#FF8FC2' : '#8BD450', screen = alert ? '#3A1730' : '#0F3A26';
   const eyes = alert ? `<rect x="48" y="70" width="18" height="8" rx="4" fill="${glow}"/><rect x="84" y="70" width="18" height="8" rx="4" fill="${glow}"/><path d="M58 102 Q75 94 92 102" stroke="${glow}" stroke-width="5" fill="none" stroke-linecap="round"/>`
@@ -104,7 +125,7 @@ function missionArt() {
       <text x="0" y="0" font-size="20" fill="${L}" font-family="monospace" letter-spacing="2">LAB TIME</text>
       <text x="0" y="50" font-size="44" font-weight="900" fill="#FFE9A8" font-family="monospace">22:00</text>
       <text x="560" y="50" text-anchor="end" font-size="44" font-weight="900" fill="${G}" font-family="monospace">06:00</text>
-      <text x="280" y="44" text-anchor="middle" font-size="22" fill="#E6E8FF">→ 해가 뜨기 전에 재가동!</text>
+      <text x="280" y="44" text-anchor="middle" font-size="22" fill="#E6E8FF">→ 해 뜨기 전에 바이오 트윈 구출!</text>
       <rect x="0" y="72" width="560" height="14" rx="7" fill="#ffffff1a"/>
       <rect x="0" y="72" width="0" height="14" rx="7" fill="#FFD23F"><animate attributeName="width" from="0" to="560" begin="3.4s" dur="6s" fill="freeze"/></rect>
     </g>
@@ -117,6 +138,7 @@ export function view(api) {
   if (T()?.id !== nui.teamId) Object.assign(nui, {teamId: T()?.id, screen: null, pro: 0, modal: null, timeUpShown: false, cert: null});   // 다른 모둠으로 입장하면 화면 상태를 비움
   if (!Z().introSeen && nui.screen === null && !timeUp()) nui.screen = 'prologue';   // 새로고침해도 처음 입장이면 스토리 영상부터
   if (nui.screen === 'prologue') return prologueView();
+  MS.music(A, true);   // 밤의 온실: 배경음 이어서
   if (!Z().rulesOk && !nui.modal && !timeUp()) nui.modal = 'rules';
   if (timeUp() && !nui.modal && !nui.timeUpShown) { nui.timeUpShown = true; nui.modal = 'timeup'; buildCert(); }
   const n = doneList().length, all = n === KEYS.length, over = timeUp(), complete = isComplete();
@@ -272,11 +294,13 @@ function playPrologue(root) {
   stopPro();
   const el = root.querySelector('.nz-pro .sub-text'); if (!el) return;
   const full = el.dataset.type, last = nui.pro >= N.prologue.length - 1, video = root.querySelector('[data-nvideo]');
+  const alarmAt = N.prologue.findIndex(p => p.video === 'v05_glucose_alarm');   // 혈당 경보 영상이 끝나면 배경음 시작
+  MS.music(A, nui.pro > alarmAt);
   let i = 0, typed = false, vidDone = !video;
   const advance = () => { if (!last && typed && vidDone && !proNext) proNext = setTimeout(() => stepPro(1), 600); };
   if (video) {
     const art = root.querySelector('.pro-art.fallback'), fail = () => { video.hidden = true; if (art) art.hidden = false; vidDone = true; advance(); };
-    video.addEventListener('ended', () => { vidDone = true; advance(); });
+    video.addEventListener('ended', () => { vidDone = true; if (nui.pro === alarmAt) MS.music(A, true); advance(); });
     video.querySelectorAll('source')[1]?.addEventListener('error', fail); video.addEventListener('error', fail);
     const p = video.play?.(); p?.catch?.(() => { video.muted = true; video.play?.()?.catch?.(fail); });
     setTimeout(() => { if (!vidDone && video.readyState === 0) fail(); }, 6000);

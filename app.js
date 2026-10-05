@@ -319,7 +319,7 @@ function homeConfirm() {
 /* ───────── 4. 밤 구역 ───────── */
 // [NIGHT] 밤 구역 화면은 night/ 폴더에서 그려요. 모둠 기록·저장·타이머·상단 바는 이 앱 것을 그대로 넘겨줘요.
 const nightApi = {
-  get team() { return team; }, save, SERVER_TIME, now, render, go, sfx, isMuted, toggleMute, fmt, toList, esc, CONFIG, menu: C.menu,
+  get team() { return team; }, save, patchTeam, SERVER_TIME, now, render, go, sfx, isMuted, toggleMute, fmt, toList, esc, CONFIG, menu: C.menu,
   topbar: () => topbar('night'), timerChip, siteFooter, teamLabel: () => teamLabel(), checkCode, downloadCanvas,
   briefing: () => { ui.slide = 0; go('briefing'); }
 };
@@ -367,7 +367,7 @@ function adminView() {
     return `<article class="team-card ${t.day?.finishedAt ? 'clear' : ''}">
       <header><h3>${t.teamNo}모둠</h3><span class="mode-tag m-${t.mode === 'night' ? 'night' : 'day'}">${where}</span></header>
       <p class="crew">${crew || '<span class="muted">이름 없음</span>'}</p>
-      ${zoneRow(t, 'day')}${zoneRow(t, 'night')}
+      ${zoneRow(t, 'day')}${zoneRow(t, 'night')}${NZ.adminCard(t)/* [NIGHT] 밤 점수·실천 서약·승인 */}
       <footer><span>힌트 ${KEYS.map(k => `${C.missions[k].icon}${t.day?.hints?.[k] || 0}`).join(' ')}</span><span class="pts">🏅 ${scoreOf(t).total}점</span>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
         <button class="del" data-del="${esc(t.id)}">${ui.armed === t.id ? '정말 삭제?' : '기록 삭제'}</button></footer></article>`;
   };
@@ -426,6 +426,7 @@ function render() {
   ui.grow = false;
   bind();
   if (view === 'night' && CONFIG.nightEnabled) NZ.bind(app, nightApi);   // [NIGHT]
+  if (view === 'admin' && CONFIG.nightEnabled) NZ.bindAdmin(app, nightApi);   // [NIGHT] 실천 서약 승인 버튼
   if (view === 'briefing') typeText();
   if (view === 'prologue') playPrologue();
   if (view === 'day' && !ui.modal) startTicker();
