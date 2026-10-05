@@ -29,6 +29,7 @@ const cpDone = k => !!Z().checkpoint?.[k];
 const doneList = () => KEYS.filter(done);
 const bonusList = () => GAME_KEYS.filter(g => Z().bonus?.[g]);
 const isComplete = () => doneList().length === KEYS.length && bonusList().length === GAME_KEYS.length;
+const fill = (t, o) => String(t || '').replace(/\{(\w+)\}/g, (_, k) => o[k] ?? '');
 const canOpen = k => (N.missions[k].requires || []).every(done);
 const sceneState = (dawn = false) => ({done: doneList(), bonus: bonusList(), open: canOpen, keys: KEYS, dawn});
 const timeUp = () => !!Z().startedAt && !Z().finishedAt && remaining() <= 0;
@@ -130,7 +131,7 @@ export function view(api) {
       <div class="toast" id="toast" role="status"></div>
     </div></section>
     <section class="ticker ${all ? 'ok' : ''}" aria-live="polite"><span class="ai">${esc(N.aiName)}</span><span id="ticker">${esc(all ? N.aiLines.allClear : N.aiLines.idle[tickIdx % N.aiLines.idle.length])}</span></section>
-    <p class="howto">색이 다른 신호를 찾아 눌러 보세요 · LOCK 8은 LOCK 4~7을 모두 복구하면 열려요 · 재가동 명령어를 넣으면 재가동 코어에서 보너스 게임이 열려요</p>
+    <p class="howto">색이 다른 신호를 찾아 눌러 보세요 · LOCK 4부터 순서대로 하나씩 열려요 · 재가동 명령어를 넣으면 재가동 코어에서 보너스 게임이 열려요</p>
   </main>${A.siteFooter()}`;
   return html + modalView();
 }
@@ -176,6 +177,7 @@ function rulesModal() {
       <li>LOCK마다 <b>시스템 점검(A)</b>을 마치면 <b>코드 락(B)</b>이 열려요. 암호는 연구원 수첩에서 풀고, 넣기 전에 <b>검사원</b>이 모두의 수첩을 확인해요.</li>
       <li><b>태블릿은 LOCK마다 돌아가며 잡아요</b>: 모둠장부터 입장할 때 적은 이름 순서대로 화면에 담당자가 나와요.</li>
       <li>LOCK을 복구할 때마다 <b>재가동 명령어 조각</b>이 나와요. 수첩 1쪽 수집판에 적어 두세요.</li>
+      <li><b>LOCK 4 → 5 → 6 → 7 → 8 순서대로</b> 열려요. 연구원 수첩도 같은 순서로 풀어요.</li>
       <li>시간 안에 다 못 끝내도 괜찮아요. <b>복구한 만큼</b> 인증서를 받아요.</li></ul></article>
     <article class="rule-box"><h3>🧮 연구 점수 계산 (최고 ${maxMission + maxTime}점)</h3>
       <table class="rule-table"><tbody>
@@ -231,7 +233,7 @@ const hooks = {
 };
 function openLock(k) {
   if (timeUp()) { toast('시간이 끝났어요. 인증서를 받아 보세요!'); A.sfx.error(); return; }
-  if (!done(k) && !canOpen(k)) { toast(N.aiLines.lockedPlan); A.sfx.error(); return; }
+  if (!done(k) && !canOpen(k)) { const need = (N.missions[k].requires || []).find(r => !done(r)); toast(fill(N.aiLines.lockedPlan, {lock: N.missions[need].lock})); A.sfx.error(); return; }
   A.sfx.tap(); MS.open(A, k, hooks);
 }
 function startGame(g) {

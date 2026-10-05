@@ -121,14 +121,14 @@ function shape(kind, x, y, fill, isKey) {
 }
 function signal(kind, i, x, y, isKey, st) {
   const K = KIND[kind], done = st.done.includes(kind), locked = isKey && !st.open(kind);
-  const fill = isKey ? (done ? '#9BE564' : locked ? '#7A7FA8' : K.keyFill) : K.fill;
-  const attrs = isKey ? `data-lock="${kind}" class="mol key ${done ? 'solved' : ''} ${locked ? 'locked' : ''}" aria-label="${done ? '복구 완료된 장치' : locked ? '잠긴 장치' : '색이 다른 신호 · LOCK 열기'}"`
+  const fill = isKey ? (done ? '#9BE564' : K.keyFill) : K.fill;
+  const attrs = isKey ? `data-lock="${kind}" class="mol key ${done ? 'solved' : ''} ${locked ? 'locked' : ''}" aria-label="${done ? '복구 완료된 장치' : locked ? '아직 잠긴 장치 · 앞 LOCK을 먼저 복구' : '색이 다른 신호 · LOCK 열기'}"`
                       : `data-decoy="${kind}" class="mol decoy" aria-label="평범한 ${K.label}"`;
   return `<g ${attrs} role="button" tabindex="0" style="--bob:${(i % 4) * 0.45}s"><g class="bob">
     ${isKey && !done && !locked ? `<circle class="ping" cx="${x}" cy="${y}" r="40" fill="none" stroke="${K.keyFill}" stroke-width="5"/>` : ''}
     ${shape(kind, x, y, fill, isKey)}
     ${isKey && done ? `<circle cx="${x + 26}" cy="${y - 26}" r="15" fill="#173b1c" stroke="#9BE564" stroke-width="3"/><text x="${x + 26}" y="${y - 20}" text-anchor="middle" font-size="18" fill="#9BE564">✓</text>` : ''}
-    ${locked ? `<text x="${x}" y="${y + 52}" text-anchor="middle" font-size="22">🔒</text>` : ''}
+    ${locked ? `<circle cx="${x + 24}" cy="${y - 24}" r="14" fill="#14163A" stroke="#9AA7FF" stroke-width="2"/><text x="${x + 24}" y="${y - 19}" text-anchor="middle" font-size="14">🔒</text>` : ''}
   </g></g>`;
 }
 function coreObject(key, cfg, st) {
