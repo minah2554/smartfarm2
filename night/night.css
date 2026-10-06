@@ -1,0 +1,83 @@
+/* 🌙 밤 구역 바깥 화면(상단 카드·지도 둘레·점수 안내·인증서 창·스토리 영상) 색 — 낮 style.css 부품을 그대로 쓰고 색만 밤으로 바꿔요.
+   LOCK 4~8 미션 화면 디자인은 mission.css (나이트 미션 원래 디자인)
+   밤 전용 클래스는 모두 .nz(밤 화면) · .nz-ov(밤 창) · .nz-pro(밤 스토리 영상) · .night-game(밤 보너스 게임) 안에서만 써요. */
+.nz, .nz-ov, .nz-pro, .night-game {
+  --night-deep: #14163A; --night-2: #23275A; --night-3: #3B3F8F;
+  --lav: #9AA7FF; --moon: #F3F0D0; --moon-shadow: #C9C39A; --star: #FFE9A8;
+}
+
+/* 밤의 온실 화면 */
+.nz{min-height:100vh;background:radial-gradient(900px 600px at 70% 0%,#3B3F8F 0,#14163A 70%)}
+.nz .team-badge{border-color:var(--night-3);background:#ffffff12}
+.nz .timer{background:var(--night-deep)}
+.nz .text-btn{color:#C9D0FF}
+.nz-hud{grid-template-columns:repeat(6,minmax(0,1fr))}
+.nz-hud .res{min-width:0;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.nz-hud .res{padding:6px 10px;gap:8px;justify-content:center;min-height:0}
+.nz-hud .res-icon{font-size:22px}
+.nz-hud .res b{font-size:15px;line-height:1.2;white-space:nowrap}
+.nz-hud .res small{font-size:12px}
+.nz-hud .res.lock{background:#1C1F45;border-color:#5B6190}.nz-hud .res.lock small{color:#9AA0C8}
+.nz-hud .res.growth{background:var(--night-2);border-color:var(--lav)}.nz-hud .res.growth small{color:#C9D0FF;letter-spacing:.04em}
+.nz .stage{border-color:var(--night-3)}
+.nz .ticker{background:#0B0E22;border-color:#FF8FC266;color:#FFC2DD}
+.nz .ticker .ai{background:#FF8FC2;color:#14163A}
+.nz .ticker.ok{border-color:var(--leaf);color:var(--leaf)}.nz .ticker.ok .ai{background:var(--leaf)}
+.nz .howto{color:#AEB5E8}
+.nz .toast{background:#14163Af0;border-color:var(--lav)}
+.nz .world .mol.key.locked{cursor:not-allowed;opacity:.8}
+.nz .world .facility .tag rect.name{fill:var(--night-deep);stroke:var(--lav)}
+.nz .world .core-spin{transform-box:fill-box;transform-origin:center;animation:spin 6s linear infinite}
+.nz .world .nlamp.on rect{filter:drop-shadow(0 0 8px #C79BFF)}
+.nz .stage.is-over .world{filter:grayscale(.7) brightness(.6)}
+@media (prefers-reduced-motion:reduce){.nz .world .core-spin{animation:none}}
+@media (max-width:640px){.nz-hud{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:480px){.nz-hud{grid-template-columns:repeat(3,minmax(0,1fr))}.nz-hud .res{padding:6px 8px;gap:6px}.nz-hud .res-icon{font-size:20px}}
+
+/* 밤 창 (점수 안내·완료·시간 종료) */
+.nz-ov{background:#0B0E22d9}
+.nz-ov .modal{background:var(--night-2);border-color:var(--night-3)}
+.nz-ov .modal.wide{width:min(100%,900px)}
+.nz-ov .kicker{color:var(--lav)}
+.nz-ov .feedback.good{color:var(--leaf)}
+.nz-ov .rule-box,.nz-ov .tier{background:var(--night-deep)}
+.nz-ov .modal.rules{background:linear-gradient(180deg,#2B2F6B,#14163A)}
+.nz-ov .rule-table td{border-top-color:var(--night-3)}
+.nz-ov .rule-box h3{color:var(--lav)}
+
+/* NIGHT CLEAR · TIME OVER */
+.nz-ov .modal.clear{background:linear-gradient(180deg,#3B3F8F,#FF9B6B 38%,#23275A 38%)}
+.nz-ov .modal.clear.over{background:linear-gradient(180deg,#5A1414,#23275A 40%)}
+.nz-ov .cert-box{background:var(--night-deep)}
+
+/* 🎬 밤 스토리 영상 (낮 .cine 부품 그대로 + 영상) */
+.nz-pro{background:#05061A}
+.nz-pro .pro-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#000}
+.nz-pro .pro-art{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:12px;background:radial-gradient(circle at 50% 40%,#3B3F8F,#0B0E22 70%)}
+.nz-pro .pro-art .flo{width:min(26vw,220px)}
+.nz-pro .pro-art p{margin:0;color:var(--lav);font-weight:700;letter-spacing:.12em}
+.nz-pro .pro-art[hidden]{display:none}
+.nz-pro .pro-art.mission{display:block;background:#070918}
+.nz-pro .pro-art.mission svg{position:absolute;inset:0;width:100%;height:100%}
+.nz-pro .cine-top .ctag{background:var(--night-3)}
+.nz-pro .cine-sub .who{margin:0 auto 6px;width:max-content;max-width:100%;display:flex;align-items:center;gap:6px;border-radius:999px;padding:3px 12px 3px 6px;font-weight:700;font-size:clamp(13px,1.6vw,16px)}
+.nz-pro .cine-sub .who span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%}
+.nz-pro .who.flo{background:#9FE8FF;color:#0B1530}.nz-pro .who.flo span{background:#0B1530;color:#9FE8FF}
+.nz-pro .who.twin{background:#FF4F8B;color:#fff}.nz-pro .who.twin span{background:#fff;color:#FF4F8B}
+.nz-pro .who small{font-weight:400;opacity:.85}
+.nz-pro .cine-sub.twin .sub-text{color:#FFE1EC}
+
+/* 교사용 대시보드 모둠 카드의 밤 칸 (실천 서약 · 승인) */
+.nz-admin{margin-top:8px;border:2px solid #9AA7FF55;border-radius:12px;padding:8px 10px;background:#14163A;color:#E6E8FF;font-size:13px;text-align:left}
+.nz-admin.wait{border-color:#FFD23F;box-shadow:0 0 0 3px #FFD23F33;animation:nzbell 1.4s ease-in-out infinite}
+@keyframes nzbell{50%{box-shadow:0 0 0 6px #FFD23F22}}
+.nz-ad-h{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0}
+.nz-ad-h b{color:#C9D0FF}.nz-ad-h span{color:#AEB5E8}
+.nz-ap{margin-left:auto;border-radius:999px;padding:5px 12px;font-weight:700;font-size:13px}
+.nz-ap.ok{background:#1F4D2A;color:#8BD450}
+.nz-ap.req{background:#FFD23F;color:#14163A;border:0;cursor:pointer;box-shadow:0 3px 0 #C99A00}
+.nz-ap.req:disabled{opacity:.7;cursor:default}
+.nz-ad-bell{margin:6px 0 0;color:#FFD23F;font-weight:700}
+.nz-pl{margin:6px 0 0;padding-left:16px;display:grid;gap:2px}
+.nz-pl b{color:#FF8FC2}
+@media (prefers-reduced-motion:reduce){.nz-admin.wait{animation:none}}
