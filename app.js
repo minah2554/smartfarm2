@@ -357,9 +357,10 @@ function dayCard(t) {
   const z = t?.day || {}; if (!z.startedAt) return '';
   const hints = KEYS.reduce((s, k) => s + (z.hints?.[k] || 0), 0);
   const locks = KEYS.filter(k => z.done?.[k]).length, bonus = GAME_KEYS.filter(g => z.bonus?.[g]).length;
-  return `<div class="day-admin"><p class="da-h"><b>☀️ 낮 ${scoreOf(t).total}점</b><span>LOCK ${locks}/${KEYS.length} · 보너스 ${bonus}/${GAME_KEYS.length} · 힌트 ${hints}</span></p>
+  return `<div class="day-admin"><p class="da-h"><b>☀️ 낮 ${scoreOf(t).total}점</b><span>LOCK ${locks}/${KEYS.length} · 보너스 ${bonus}/${GAME_KEYS.length} · 힌트 ${hints} · 오답 ${z.wrongs || 0}</span>${z.plantName ? `<span class="da-plant">🌸 ${esc(z.plantName)}</span>` : ''}</p>
     ${hints ? `<p class="da-hints">${KEYS.map(k => `<span>${C.missions[k].icon} ${z.hints?.[k] || 0}</span>`).join('')}</p>` : ''}</div>`;
 }
+function countWrong() { save({'day/wrongs': (Z('day').wrongs || 0) + 1}); }   // 낮 오답 횟수: 교사용 대시보드에 표시만 해요 (점수에는 영향 없음)
 function adminView() {
   const list = Object.values(teamsCache).filter(t => t && t.classNo && t.grade);
   const groupKey = t => `${t.grade}-${t.classNo}`;
@@ -374,7 +375,7 @@ function adminView() {
       <header><h3>${t.teamNo}모둠</h3><span class="mode-tag m-${t.mode === 'night' ? 'night' : 'day'}">${where}</span></header>
       <p class="crew">${crew || '<span class="muted">이름 없음</span>'}</p>
       ${zoneRow(t, 'day')}${dayCard(t)}${zoneRow(t, 'night')}${NZ.adminCard(t)/* [NIGHT] 밤 점수·실천 서약·승인 */}
-      <footer>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
+      <footer><span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
         <button class="del" data-del="${esc(t.id)}">${ui.armed === t.id ? '정말 삭제?' : '기록 삭제'}</button></footer></article>`;
   };
   return `<main class="admin ${ui.adminBig ? 'big' : ''}">
@@ -743,13 +744,13 @@ function bind() {
   $('#cp-form')?.addEventListener('submit', e => {
     e.preventDefault(); const k = ui.modal, cp = C.missions[k].checkpoint;
     if (timeUp()) return;
-    if (norm(e.currentTarget.elements.code.value, true) !== norm(cp.answer, true)) { ui.feedback = cp.wrong; sfx.error(); render(); shake(); return; }
+    if (norm(e.currentTarget.elements.code.value, true) !== norm(cp.answer, true)) { ui.feedback = cp.wrong; countWrong(); sfx.error(); render(); shake(); return; }
     save({[`day/checkpoint/${k}`]: SERVER_TIME}); ui.feedback = ''; sfx.unlock(); render();
   });
   $('#code-form')?.addEventListener('submit', e => {
     e.preventDefault(); const k = ui.modal, m = C.missions[k];
     if (timeUp()) return;
-    if (norm(e.currentTarget.elements.code.value) !== norm(m.answer)) { ui.feedback = m.wrong; sfx.error(); render(); shake(); return; }
+    if (norm(e.currentTarget.elements.code.value) !== norm(m.answer)) { ui.feedback = m.wrong; countWrong(); sfx.error(); render(); shake(); return; }
     solve(k);
   });
   $$('[data-play]').forEach(b => b.onclick = () => startGame(b.dataset.play));
