@@ -321,6 +321,7 @@ p,li,dd,label,legend{text-wrap:pretty}
 
 /* 대시보드 추가 */
 .summary .d b{color:var(--pollen)}.summary .n b{color:#B9C2FF}
+.summary .w b{color:#8FA9A4}.summary .w.on{border-color:#FFC861;background:#3a3118}.summary .w.on b{color:#FFC861}
 .class-block{padding:0 clamp(12px,3vw,28px) 18px}
 .class-block h2{font-size:28px;margin:8px 0 12px;color:var(--mist)}
 .class-block h2 small{font-family:var(--body);font-size:14px;color:#7FB2A8;margin-left:8px}

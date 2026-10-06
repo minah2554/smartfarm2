@@ -9,6 +9,7 @@ import {drawCertificate, downloadCanvas, loadPhoto} from './cert.js';
 import {getTeam, patchTeam, applyPatch, fetchTeams, watchTeams, watchTeam, deleteTeam, clearTeams, syncLabel, syncClock, now, SERVER_TIME, addHall, fetchHall, clearHall} from './sync.js';
 import {sfx, isMuted, toggleMute, bgm} from './sound.js';
 import * as NZ from './night/index.js';   // [NIGHT] 밤 구역 화면
+import {NIGHT} from './night/night-content.js';   // 대시보드 구역 줄에 밤 장치 아이콘을 보여 주려고 읽어요
 
 /* ───────── 상태 ─────────
    기기(sf2-device) : 이 기기가 마지막으로 입장한 모둠, 보던 화면 (관리코드는 입장할 때마다 새로 확인)
@@ -344,16 +345,13 @@ function statusText(rec, mode) {
 function zoneRow(t, mode) {
   const z = t[mode] || {}, nodes = mode === 'day'
     ? [...KEYS.map(k => [C.missions[k].icon, !!z.done?.[k], C.missions[k].reward]), ...GAME_KEYS.map(g => [C.games[g].icon, !!z.bonus?.[g], C.games[g].title])]
-    : (() => {   // 밤: 미션·보너스 개수는 config.js의 nightSlots (밤 구역이 정함)
-        const got = [...Object.keys(z.done || {}), ...Object.keys(z.bonus || {})];
-        const slots = Math.max(got.length, Number(CONFIG.nightSlots) || 0);
-        return Array.from({length: slots}, (_, i) => ['●', i < got.length, got[i] || '']);
-      })();
+    : [...Object.keys(NIGHT.missions).map(k => [NIGHT.missions[k].icon, !!z.done?.[k], NIGHT.missions[k].title]), ...Object.keys(NIGHT.games).map(g => [NIGHT.games[g].icon, !!z.bonus?.[g], NIGHT.games[g].title])];   // 밤: 장치 5개(LOCK 4~8) + 보너스 (night-content.js 순서)
   const st = statusText(t, mode), cls = z.finishedAt ? 'fin' : st === '시간 종료' ? 'over' : z.startedAt ? 'run' : 'idle';
   return `<div class="zone z-${mode} ${cls}"><span class="zl">${mode === 'day' ? '☀️ 낮' : '🌙 밤'}</span>
-    <div class="nodes">${nodes.map(([ic, on, title], i) => `${mode === 'day' && i === KEYS.length ? '<i class="sep"></i>' : ''}<span class="nd ${on ? 'on' : ''}" title="${esc(title)}">${ic}</span>`).join('')}</div>
+    <div class="nodes">${nodes.map(([ic, on, title], i) => `${i === (mode === 'day' ? KEYS.length : Object.keys(NIGHT.missions).length) ? '<i class="sep"></i>' : ''}<span class="nd ${on ? 'on' : ''}" title="${esc(title)}">${ic}</span>`).join('')}</div>
     <span class="tl" data-tl="${esc(t.id)}" data-mode="${mode}">${esc(st)}</span></div>`;
 }
+const waitingApproval = t => !!t.night?.approvalRequested && !t.night?.approvedAt && !t.night?.checkpoint?.plan;   // 서약을 냈는데 선생님이 아직 승인 안 한 모둠
 function adminView() {
   const list = Object.values(teamsCache).filter(t => t && t.classNo && t.grade);
   const groupKey = t => `${t.grade}-${t.classNo}`;
@@ -368,7 +366,7 @@ function adminView() {
       <header><h3>${t.teamNo}모둠</h3><span class="mode-tag m-${t.mode === 'night' ? 'night' : 'day'}">${where}</span></header>
       <p class="crew">${crew || '<span class="muted">이름 없음</span>'}</p>
       ${zoneRow(t, 'day')}${zoneRow(t, 'night')}${NZ.adminCard(t)/* [NIGHT] 밤 점수·실천 서약·승인 */}
-      <footer><span>힌트 ${KEYS.map(k => `${C.missions[k].icon}${t.day?.hints?.[k] || 0}`).join(' ')}</span><span class="pts">🏅 ${scoreOf(t).total}점</span>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
+      <footer><span>힌트 ${KEYS.map(k => `${C.missions[k].icon}${t.day?.hints?.[k] || 0}`).join(' ')}</span><span class="pts">☀️ ${t.day?.startedAt ? scoreOf(t).total + '점' : '-'} · 🌙 ${t.night?.startedAt ? NZ.nightScore(t).total + '점' : '-'}</span>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
         <button class="del" data-del="${esc(t.id)}">${ui.armed === t.id ? '정말 삭제?' : '기록 삭제'}</button></footer></article>`;
   };
   return `<main class="admin ${ui.adminBig ? 'big' : ''}">
@@ -379,7 +377,8 @@ function adminView() {
       <div class="d"><b>${count('day', z => z.startedAt && !z.finishedAt && remaining({day: z}, 'day') > 0)}</b><span>☀️ 낮 진행 중</span></div>
       <div class="d"><b>${count('day', z => z.finishedAt)}</b><span>☀️ 낮 완료</span></div>
       <div class="n"><b>${count('night', z => z.startedAt && !z.finishedAt && remaining({night: z}, 'night') > 0)}</b><span>🌙 밤 진행 중</span></div>
-      <div class="n"><b>${count('night', z => z.finishedAt)}</b><span>🌙 밤 완료</span></div></section>
+      <div class="n"><b>${count('night', z => z.finishedAt)}</b><span>🌙 밤 완료</span></div>
+      <div class="w ${list.some(waitingApproval) ? 'on' : ''}"><b>${list.filter(waitingApproval).length}</b><span>🔔 서약 승인 대기</span></div></section>
     ${ui.adminHall ? hallPanel() : ''}
     <nav class="filters"><button class="chip ${ui.adminFilter === 'all' ? 'on' : ''}" data-filter="all">전체 반</button>${groups.map(g => { const [gr, c] = g.split('-'); return `<button class="chip ${ui.adminFilter === g ? 'on' : ''}" data-filter="${g}">${gr}학년 ${c}반</button>`; }).join('')}</nav>
     ${shown.length ? shown.map(g => { const [gr, c] = g.split('-'); const teams = list.filter(t => groupKey(t) === g).sort((a, b) => a.teamNo - b.teamNo);
