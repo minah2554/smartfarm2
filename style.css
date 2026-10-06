@@ -543,3 +543,4 @@ p,li,label,legend{text-wrap:pretty}
 .da-h{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0}
 .da-h b{color:#FFE29A}.da-h span{color:#E8D9A8}
 .da-hints{margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px 12px;color:#E8D9A8}
+.da-h .da-plant{color:#FFB8D8;font-weight:700}
