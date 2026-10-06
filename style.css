@@ -538,3 +538,8 @@ p,li,label,legend{text-wrap:pretty}
 .hall-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
 .hall-col h3{font-size:17px;margin-bottom:8px}.hall-col h3 small{font-weight:400;color:#A9CFC6;font-size:13px;margin-left:6px}
 .hall-col .hall{max-height:360px;overflow:auto;padding-right:4px}
+/* 교사용 대시보드: 낮 구역 현황 칸 (밤 칸 .nz-admin과 같은 모양, 낮 색) */
+.day-admin{margin-top:8px;border:2px solid #FFC86155;border-radius:12px;padding:8px 10px;background:#2A2A12;color:#FFF3D0;font-size:13px;text-align:left}
+.da-h{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0}
+.da-h b{color:#FFE29A}.da-h span{color:#E8D9A8}
+.da-hints{margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px 12px;color:#E8D9A8}

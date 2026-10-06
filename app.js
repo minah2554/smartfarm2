@@ -352,6 +352,14 @@ function zoneRow(t, mode) {
     <span class="tl" data-tl="${esc(t.id)}" data-mode="${mode}">${esc(st)}</span></div>`;
 }
 const waitingApproval = t => !!t.night?.approvalRequested && !t.night?.approvedAt && !t.night?.checkpoint?.plan;   // 서약을 냈는데 선생님이 아직 승인 안 한 모둠
+/* 교사용 대시보드: 낮 구역 현황 칸 (밤 칸 NZ.adminCard와 같은 모양) — 점수·장치·보너스·장치별 힌트 */
+function dayCard(t) {
+  const z = t?.day || {}; if (!z.startedAt) return '';
+  const hints = KEYS.reduce((s, k) => s + (z.hints?.[k] || 0), 0);
+  const locks = KEYS.filter(k => z.done?.[k]).length, bonus = GAME_KEYS.filter(g => z.bonus?.[g]).length;
+  return `<div class="day-admin"><p class="da-h"><b>☀️ 낮 ${scoreOf(t).total}점</b><span>LOCK ${locks}/${KEYS.length} · 보너스 ${bonus}/${GAME_KEYS.length} · 힌트 ${hints}</span></p>
+    ${hints ? `<p class="da-hints">${KEYS.map(k => `<span>${C.missions[k].icon} ${z.hints?.[k] || 0}</span>`).join('')}</p>` : ''}</div>`;
+}
 function adminView() {
   const list = Object.values(teamsCache).filter(t => t && t.classNo && t.grade);
   const groupKey = t => `${t.grade}-${t.classNo}`;
@@ -365,8 +373,8 @@ function adminView() {
     return `<article class="team-card ${t.day?.finishedAt ? 'clear' : ''}">
       <header><h3>${t.teamNo}모둠</h3><span class="mode-tag m-${t.mode === 'night' ? 'night' : 'day'}">${where}</span></header>
       <p class="crew">${crew || '<span class="muted">이름 없음</span>'}</p>
-      ${zoneRow(t, 'day')}${zoneRow(t, 'night')}${NZ.adminCard(t)/* [NIGHT] 밤 점수·실천 서약·승인 */}
-      <footer><span>힌트 ${KEYS.map(k => `${C.missions[k].icon}${t.day?.hints?.[k] || 0}`).join(' ')}</span><span class="pts">☀️ ${t.day?.startedAt ? scoreOf(t).total + '점' : '-'} · 🌙 ${t.night?.startedAt ? NZ.nightScore(t).total + '점' : '-'}</span>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
+      ${zoneRow(t, 'day')}${dayCard(t)}${zoneRow(t, 'night')}${NZ.adminCard(t)/* [NIGHT] 밤 점수·실천 서약·승인 */}
+      <footer>${t.day?.plantName ? `<span>🌸 ${esc(t.day.plantName)}</span>` : ''}<span class="grow"></span><span>${ago < 60 ? `${ago}초 전` : `${Math.round(ago / 60)}분 전`}</span>
         <button class="del" data-del="${esc(t.id)}">${ui.armed === t.id ? '정말 삭제?' : '기록 삭제'}</button></footer></article>`;
   };
   return `<main class="admin ${ui.adminBig ? 'big' : ''}">

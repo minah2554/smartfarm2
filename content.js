@@ -4,7 +4,7 @@ export const CONTENT = {
   title: '스마트팜 바이오 랩',
   aiName: 'FARM-OS',
   // 화면 아래 푸터
-  footer: { version: 'v2.9.0', copyright: '© 2026 minari&ginbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
+  footer: { version: 'v2.9.1', copyright: '© 2026 minari&ginbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
 
   // 연구원 출입증(첫 화면) 문구
   entry: {
