@@ -4,7 +4,7 @@ export const CONTENT = {
   title: '스마트팜 바이오 랩',
   aiName: 'FARM-OS',
   // 화면 아래 푸터
-  footer: { version: 'v2.9.4', copyright: '© 2026 minari&ginbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
+  footer: { version: 'v2.9.5', copyright: '© 2026 minari&ginbong. All rights reserved.', note: '융합 방탈출 · 과학 × 가정' },
 
   // 연구원 출입증(첫 화면) 문구
   entry: {
@@ -71,7 +71,7 @@ export const CONTENT = {
 
   missions: {
     water: {
-      title: '수분 펌프', icon: '💧', reward: '물(H₂O)', prompt: '배관 미로에서 지나간 밸브 7개의 문자·숫자를 순서대로 입력하세요. (마지막은 숫자 영(0)이에요)',
+      title: '수분 펌프', icon: '💧', reward: '물(H₂O)', prompt: '배관 미로에서 지나간 밸브 7개의 문자·숫자를 순서대로 입력하세요.',
       placeholder: '7자리 (문자·숫자)', answer: '9C4E2R0',
       wrong: '빨간 체관 배관을 지났거나 막다른 길의 밸브까지 적었는지 확인해 보세요. 물은 물관으로만 이동하고, 이름표는 뿌리 → 줄기 → 잎 순서예요.',
       zeroAsO: true   // 마지막 0을 알파벳 O로 써도 인정
