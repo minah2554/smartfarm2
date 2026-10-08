@@ -96,6 +96,8 @@ p,li,dd,label,legend{text-wrap:pretty}
 @keyframes fade{from{opacity:0}}
 .modal{position:relative;width:min(100%,620px);max-height:92vh;overflow:auto;background:var(--deep-2);border:2px solid #3E9488;border-radius:var(--r-lg);padding:26px;animation:pop .28s cubic-bezier(.3,1.4,.5,1)}
 @keyframes pop{from{transform:scale(.92);opacity:0}}
+.overlay.noanim,.modal.noanim{animation:none}   /* 다시 그릴 때 깜빡임 방지 (흔들림은 아래 .shake가 이김) */
+.noanim .padlock .shackle{animation-duration:0s;animation-delay:0s}
 .modal h2{font-size:30px;margin-bottom:6px}
 .modal .close{position:absolute;top:16px;right:16px;padding:6px 14px}
 .modal.shake{animation:shake .4s}
@@ -194,7 +196,7 @@ p,li,dd,label,legend{text-wrap:pretty}
 .tabs{display:flex;gap:8px;margin:14px 0 16px;border-bottom:2px solid #2F7A71}
 .tabs button{padding:10px 18px;border-radius:14px 14px 0 0;font-weight:900;color:#A9CFC6;margin-bottom:-2px;border:2px solid transparent}
 .tabs button.active{background:var(--deep);color:var(--pollen);border-color:#2F7A71;border-bottom-color:var(--deep)}
-.tabs small{background:var(--pollen);color:var(--ink);border-radius:999px;padding:0 7px;font-size:12px}
+.tabs small{background:var(--pollen);color:var(--ink);border-radius:999px;padding:2px 11px;margin-left:4px;font-size:16px;font-weight:900;vertical-align:middle}
 .step{display:inline-block;background:var(--pollen);color:var(--ink);font-weight:900;border-radius:999px;padding:3px 14px;margin:0 0 6px}
 .ok{color:var(--leaf);font-weight:700}
 .hint{border-radius:var(--r-md);padding:14px 16px;margin:10px 0}
@@ -205,7 +207,7 @@ p,li,dd,label,legend{text-wrap:pretty}
 .hint li.sub{list-style:none;margin-left:4px;padding-left:12px;border-left:3px solid #3E9488}
 .answer{margin:12px 0 0;background:var(--pollen);color:var(--ink);border-radius:12px;padding:10px 14px;font-size:20px}
 .unlocked{text-align:center}
-.padlock{width:110px;margin:4px auto 0;display:block}
+.padlock{width:110px;margin:30px auto 0;display:block;overflow:visible}
 .padlock .shackle{transform-origin:82px 54px;animation:open .7s .2s cubic-bezier(.3,1.6,.5,1) both}
 @keyframes open{to{transform:translateY(-12px) rotate(28deg)}}
 .unlocked h3{font-size:30px;color:var(--leaf);margin:8px 0}
@@ -298,6 +300,19 @@ p,li,dd,label,legend{text-wrap:pretty}
 .find-list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0}
 .find{background:#F4FFFB;color:var(--ink);border-radius:999px;padding:6px 16px;font-weight:900;font-size:18px}
 .find.ok{background:var(--leaf);text-decoration:line-through}
+/* 화면 높이가 낮을 때(가로로 든 태블릿·노트북): 위쪽 글을 촘촘하게, 창고 그림은 남는 높이에 맞춰 한 화면에 */
+@media (max-height:900px){
+  .modal.game.wide{padding:14px 22px 12px}
+  .modal.game.wide .kicker{margin:0 0 2px;font-size:13px}
+  .modal.game.wide h2{font-size:22px;margin:0 0 2px}
+  .modal.game.wide > p:not(.kicker){margin:2px 0;font-size:13px;line-height:1.35}
+  .modal.game.wide .find-list{margin:6px 0 4px;gap:6px}
+  .modal.game.wide .find{padding:3px 14px;font-size:16px}
+  .modal.game.wide .stats{margin:2px 0 6px;font-size:15px}
+  .modal.game.wide .feedback{min-height:0;margin:4px 0 0}
+  .modal.game.wide .close{top:10px;right:14px}
+  .modal.game.wide .shed{width:min(100%,calc((92vh - 232px) * 1.6))}
+}
 .shed{position:relative;container-type:inline-size;aspect-ratio:16/10;width:min(100%,calc((92vh - 250px) * 1.6));margin:0 auto;border-radius:18px;overflow:hidden;border:4px solid #5E3B22;
   background:linear-gradient(#0000 72%,#5a3d27 72% 74%,#7a5a3f 74%),
     repeating-linear-gradient(90deg,#8a6446 0 7%,#7d5a3d 7% 7.4%,#94704f 7.4% 14%,#7d5a3d 14% 14.4%),#8a6446}

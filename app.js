@@ -430,7 +430,16 @@ function render() {
   } else if (view === 'night') html = nightView() + (ui.modal === 'home' ? homeConfirm() : '');
   else if (view === 'admin') html = adminView();
   if (ui.pwFor) html += passwordModal();
+  // 같은 창이 이미 열려 있으면(힌트 열기·동기화 등으로 다시 그릴 때) 등장 애니메이션을 다시 재생하지 않고 스크롤 위치도 유지 → 깜빡임 방지
+  const shownKey = view === 'day' && ui.modal ? `${ui.modal}|${ui.solved || ''}` : null;
+  const keepModal = !!shownKey && ui.shownKey === shownKey && !!app.querySelector('.modal');
+  const prevScroll = keepModal ? app.querySelector('.modal').scrollTop : 0;
   app.innerHTML = html;
+  ui.shownKey = shownKey;
+  if (keepModal) {
+    app.querySelectorAll('.overlay, .modal').forEach(el => el.classList.add('noanim'));
+    const md = app.querySelector('.modal'); if (md) md.scrollTop = prevScroll;
+  }
   ui.grow = false;
   bind();
   if (view === 'night' && CONFIG.nightEnabled) NZ.bind(app, nightApi);   // [NIGHT]
