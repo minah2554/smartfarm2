@@ -750,7 +750,7 @@ function bind() {
   $('#code-form')?.addEventListener('submit', e => {
     e.preventDefault(); const k = ui.modal, m = C.missions[k];
     if (timeUp()) return;
-    if (norm(e.currentTarget.elements.code.value) !== norm(m.answer)) { ui.feedback = m.wrong; countWrong(); sfx.error(); render(); shake(); return; }
+    if (norm(e.currentTarget.elements.code.value, m.zeroAsO) !== norm(m.answer, m.zeroAsO)) { ui.feedback = m.wrong; countWrong(); sfx.error(); render(); shake(); return; }
     solve(k);
   });
   $$('[data-play]').forEach(b => b.onclick = () => startGame(b.dataset.play));
