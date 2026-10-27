@@ -19,7 +19,21 @@ const STAGE = ['새싹', '줄기', '꽃봉오리', '꽃'], GROW_TO = ['새싹으
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const load = (k, f) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? f; } catch { return f; } };
 const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* 저장이 막힌 브라우저 */ } };
-const norm = (s, cp) => { let v = String(s).trim().replace(/\s+/g, '').toUpperCase(); if (cp) v = v.replace(/0/g, 'O'); return v; };
+/* 암호 비교용 정리: 대소문자·공백·구분 기호(쉼표, 하이픈 등) 무시 · 한글 자판 상태로 쳐도 같은 키의 영문으로 인정(ㅐ→O, ㅌ→X) · ○/✕ 기호 인정 · cp가 true면 숫자 0 = 알파벳 O */
+const JAMO_KEY = (() => { const m = {}; const rows = [['ㅂㅈㄷㄱㅅㅛㅕㅑㅐㅔ', 'QWERTYUIOP'], ['ㅁㄴㅇㄹㅎㅗㅓㅏㅣ', 'ASDFGHJKL'], ['ㅋㅌㅊㅍㅠㅜㅡ', 'ZXCVBNM']];
+  rows.forEach(([j, k]) => [...j].forEach((c, i) => { m[c] = k[i]; })); Object.assign(m, {'ㅃ': 'Q', 'ㅉ': 'W', 'ㄸ': 'E', 'ㄲ': 'R', 'ㅆ': 'T', 'ㅒ': 'O', 'ㅖ': 'P'}); return m; })();
+const CH_L = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', CH_V = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ', CH_T = ' ㄱㄲㄳㄴㄵㄶㄷㄹㄺㄻㄼㄽㄾㄿㅀㅁㅂㅄㅅㅆㅇㅈㅊㅋㅌㅍㅎ';
+const SYMBOL_KEY = {'○': 'O', '◯': 'O', '〇': 'O', '⭕': 'O', 'ㅇ': 'O', '✕': 'X', '✗': 'X', '✘': 'X', '✖': 'X', '×': 'X', '❌': 'X'};
+const norm = (s, cp) => {
+  let v = '';
+  for (const ch of String(s ?? '').normalize('NFC')) {
+    const c = ch.charCodeAt(0);
+    if (c >= 0xAC00 && c <= 0xD7A3) { const n = c - 0xAC00; v += [CH_L[Math.floor(n / 588)], CH_V[Math.floor((n % 588) / 28)], CH_T[n % 28]].map(j => JAMO_KEY[j] || '').join(''); }
+    else v += (ch !== 'ㅇ' && JAMO_KEY[ch]) || SYMBOL_KEY[ch] || ch;
+  }
+  v = v.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return cp ? v.replace(/0/g, 'O') : v;
+};
 const cleanName = s => String(s || '').replace(/\s+/g, ' ').trim().slice(0, CONFIG.nameMaxLength);
 const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 const toList = v => Array.isArray(v) ? v.filter(Boolean) : v && typeof v === 'object' ? Object.values(v).filter(Boolean) : [];   // Firebase가 배열을 객체로 돌려줄 때 대비
